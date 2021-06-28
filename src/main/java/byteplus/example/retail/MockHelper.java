@@ -91,7 +91,7 @@ public class MockHelper {
 
         Product.Display display = Product.Display.newBuilder()
                 .addAllDetailPageDisplayTags(Arrays.asList("tag1", "tag2"))
-                .addAllDetailPageDisplayTags(Arrays.asList("taga", "tagb"))
+                .addAllListingPageDisplayTags(Arrays.asList("taga", "tagb"))
                 .setListingPageDisplayType("image")
                 .setCoverMultimediaUrl("https://www.google.com")
                 .build();

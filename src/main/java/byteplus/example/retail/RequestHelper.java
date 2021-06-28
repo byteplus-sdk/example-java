@@ -7,7 +7,6 @@ import byteplus.retail.sdk.protocol.ByteplusRetail.Status;
 import byteplus.sdk.core.BizException;
 import byteplus.sdk.core.NetException;
 import byteplus.sdk.core.Option;
-import byteplus.sdk.core.Options;
 import byteplus.sdk.retail.RetailClient;
 import com.google.protobuf.Any;
 import com.google.protobuf.InvalidProtocolBufferException;
@@ -22,10 +21,7 @@ import java.time.LocalTime;
 import java.util.Objects;
 import java.util.UUID;
 
-import static byteplus.sdk.core.Constant.IDEMPOTENT_STATUS_CODE;
-import static byteplus.sdk.core.Constant.OPERATION_LOSS_STATUS_CODE;
-import static byteplus.sdk.core.Constant.SUCCESS_STATUS_CODE;
-import static byteplus.sdk.core.Constant.TOO_MANY_REQUEST_STATUS_CODE;
+import static byteplus.sdk.core.Constant.STATUS_CODE_SUCCESS;
 
 @Slf4j
 public class RequestHelper {
@@ -33,21 +29,39 @@ public class RequestHelper {
     private final static Duration POLLING_TIMEOUT = Duration.ofSeconds(10);
 
     // The time interval between requests during polling
-    private final static int POLLING_INTERVAL_MILLIS = 100;
+    private final static Duration POLLING_INTERVAL = Duration.ofMillis(100);
 
     // The interval base of retry for server overload
-    private final static int OVERLOAD_RETRY_INTERVAL_MILLIS = 100;
+    private final static Duration OVERLOAD_RETRY_INTERVAL = Duration.ofMillis(200);
 
-    private static final Duration GET_OPERATION_TIMEOUT = Duration.ofMillis(600);
+    private final static Duration GET_OPERATION_TIMEOUT = Duration.ofMillis(500);
 
     private final RetailClient client;
+
+    interface Callable<Rsp extends Message, Req extends Message> {
+        Rsp call(Req req, Option... opts) throws BizException, NetException;
+    }
 
     public RequestHelper(RetailClient client) {
         this.client = client;
     }
 
-    interface Callable<Rsp extends Message, Req extends Message> {
-        Rsp call(Req req, Options.Filler... opts) throws BizException, NetException;
+    public <Rsp extends Message, Req extends Message> Rsp doImport(
+            Callable<OperationResponse, Req> callable,
+            Req req,
+            Option[] opts,
+            Parser<Rsp> parser,
+            int retryTimes) throws BizException {
+
+        // To ensure that the request is successfully received by the server,
+        // it should be retried after network or overload exception occurs.
+        OperationResponse opRsp
+                = doWithRetryAlthoughOverload(callable, req, opts, retryTimes);
+        if (!StatusHelper.isUploadSuccess(opRsp.getStatus())) {
+            log.error("[PollingImportResponse] server return error info, rsp:\n{}", opRsp);
+            throw new BizException(opRsp.getStatus().getMessage());
+        }
+        return pollingResponse(opRsp, parser);
     }
 
     /**
@@ -57,24 +71,28 @@ public class RequestHelper {
      * but it cannot retry endlessly. The maximum count of retries should be set.
      *
      * @param callable the task need to execute
-     * @param <Rsp>    the response type of task
+     * @param <Req>>   the request type of task
+     * @param opts     the options need by the task
      * @return the response of task
-     * @throws BizException throw by task
+     * @throws BizException throw by task or server still overload after retry
      */
     public <Rsp extends Message, Req extends Message> Rsp doWithRetryAlthoughOverload(
             Callable<Rsp, Req> callable,
             Req req,
-            Options.Filler[] opts,
+            Option[] opts,
             int retryTimes) throws BizException {
 
+        if (retryTimes < 0) {
+            retryTimes = 0;
+        }
         int tryTimes = retryTimes + 1;
         for (int i = 0; i < tryTimes; i++) {
             Rsp response = doWithRetry(callable, req, opts, retryTimes - i);
-            if (isRejectForOverload(getStatus(response))) {
+            if (StatusHelper.isServerOverload(getStatus(response))) {
                 try {
-                    // Wait some time before making a request,
-                    // and the wait time increases with the number of retries
-                    Thread.sleep(randomWaitTime(i));
+                    // Wait some time before request again,
+                    // and the wait time will increase by the number of retried
+                    Thread.sleep(randomOverloadWaitTime(i));
                 } catch (InterruptedException e) {
                     e.printStackTrace();
                     return response;
@@ -83,39 +101,13 @@ public class RequestHelper {
             }
             return response;
         }
-        throw new BizException("Invalid retry times");
-    }
-
-    private Status getStatus(Object response) {
-        Class<?> clz = response.getClass();
-        try {
-            Method getStatusMethod = clz.getMethod("getStatus");
-            return (Status) getStatusMethod.invoke(response);
-        } catch (NoSuchMethodException | InvocationTargetException | IllegalAccessException e) {
-            log.error("Response not contain status field, msg:{}", e.getMessage());
-        }
-        return Status.newBuilder()
-                .setCode(SUCCESS_STATUS_CODE)
-                .build();
-    }
-
-    private boolean isRejectForOverload(Status status) {
-        return status.getCode() == TOO_MANY_REQUEST_STATUS_CODE;
-    }
-
-    private int randomWaitTime(int retriedTimes) {
-        final int INCR_SPEED = 3;
-        if (retriedTimes < 0) {
-            return OVERLOAD_RETRY_INTERVAL_MILLIS;
-        }
-        double rate = 1 + Math.random() * Math.pow(INCR_SPEED, retriedTimes);
-        return (int) (OVERLOAD_RETRY_INTERVAL_MILLIS * rate);
+        throw new BizException("Server overload");
     }
 
     public <Rsp extends Message, Req extends Message> Rsp doWithRetry(
             Callable<Rsp, Req> callable,
             Req req,
-            Options.Filler[] opts,
+            Option[] opts,
             int retryTimes) throws BizException {
 
         Rsp rsp = null;
@@ -126,6 +118,9 @@ public class RequestHelper {
         // If a new requestId is used, it will be treated as a new request
         // by the server, which may save duplicate data
         opts = withRequestId(opts);
+        if (retryTimes < 0) {
+            retryTimes = 0;
+        }
         int tryTimes = retryTimes + 1;
         for (int i = 0; i < tryTimes; i++) {
             try {
@@ -142,61 +137,60 @@ public class RequestHelper {
         return rsp;
     }
 
-    private Options.Filler[] withRequestId(Options.Filler[] opts) {
-        Options.Filler[] optsWithRequestId;
+    private Option[] withRequestId(Option[] opts) {
+        Option[] optsWithRequestId;
         if (Objects.isNull(opts)) {
-            optsWithRequestId = new Options.Filler[1];
+            optsWithRequestId = new Option[1];
         } else {
-            optsWithRequestId = new Options.Filler[opts.length + 1];
+            optsWithRequestId = new Option[opts.length + 1];
         }
         // This will not override the RequestId set by the user
         optsWithRequestId[0] = Option.withRequestId(UUID.randomUUID().toString());
-        System.arraycopy(opts, 0, optsWithRequestId, 1, opts.length);
+        if (Objects.nonNull(opts) && opts.length > 0) {
+            System.arraycopy(opts, 0, optsWithRequestId, 1, opts.length);
+        }
         return optsWithRequestId;
     }
 
-    public <Rsp extends Message, Req extends Message> Rsp doImport(
-            Callable<OperationResponse, Req> callable,
-            Req req,
-            Options.Filler[] opts,
-            Parser<Rsp> parser,
-            int retryTimes) throws BizException {
+    private Status getStatus(Object response) {
+        Class<?> clz = response.getClass();
+        try {
+            Method getStatusMethod = clz.getMethod("getStatus");
+            return (Status) getStatusMethod.invoke(response);
+        } catch (NoSuchMethodException | InvocationTargetException | IllegalAccessException e) {
+            log.error("Response not contain status field, msg:{}", e.getMessage());
+        }
+        return Status.newBuilder()
+                .setCode(STATUS_CODE_SUCCESS)
+                .build();
+    }
 
-        // To ensure that the request is successfully received by the server,
-        // it should be retried after a network exception occurs.
-        OperationResponse opRsp = doWithRetryAlthoughOverload(callable, req, opts, retryTimes);
-
-        return pollingResponse(parser, opRsp);
+    private long randomOverloadWaitTime(int retriedTimes) {
+        final int INCREASE_SPEED = 3;
+        if (retriedTimes < 0) {
+            return RequestHelper.OVERLOAD_RETRY_INTERVAL.toMillis();
+        }
+        double rate = 1 + Math.random() * Math.pow(INCREASE_SPEED, retriedTimes);
+        return (int) (RequestHelper.OVERLOAD_RETRY_INTERVAL.toMillis() * rate);
     }
 
     private <Rsp extends Message> Rsp pollingResponse(
-            Parser<Rsp> rspParser, OperationResponse opRsp) throws BizException {
-        if (!isSuccess(opRsp)) {
-            log.error("[PollingImportResponse] server return error info: \n{}", opRsp.getStatus());
-            throw new BizException(opRsp.getStatus().getMessage());
-        }
+            OperationResponse opRsp, Parser<Rsp> rspParser) throws BizException {
         Any responseAny = doPollingResponse(opRsp.getOperation().getName());
         try {
             return rspParser.parseFrom(responseAny.getValue().toByteArray());
         } catch (InvalidProtocolBufferException e) {
-            log.error("[PollingImportResponse] parse response by protobuf fail, {}", e.getMessage());
+            log.error("[PollingResponse] parse response fail, {}", e.getMessage());
             throw new BizException("parse import response fail");
         }
     }
 
-    private boolean isSuccess(OperationResponse opRsp) {
-        int code = opRsp.getStatus().getCode();
-        return code == SUCCESS_STATUS_CODE || code == IDEMPOTENT_STATUS_CODE;
-    }
-
     private Any doPollingResponse(String name) throws BizException {
-        OperationResponse opRsp;
-        Operation operation;
         // Set the polling expiration time to prevent endless polling
-        LocalTime pollingExpireTime = LocalTime.now().plus(POLLING_TIMEOUT);
-        while (LocalTime.now().isBefore(pollingExpireTime)) {
+        LocalTime endTime = LocalTime.now().plus(POLLING_TIMEOUT);
+        do {
             // Request the Get Operation interface to Get the latest Operation
-            opRsp = getPollingOperation(name);
+            OperationResponse opRsp = getPollingOperation(name);
             if (Objects.isNull(opRsp)) {
                 // When polling for import results, you should continue polling
                 // until the maximum polling time is exceeded, as long as there is
@@ -207,11 +201,11 @@ public class RequestHelper {
             // The server may lose operation information due to unexpected failure.
             // At this time, should interrupt the request and send feedback to bytedance
             // to confirm whether the data in this request has been successfully imported
-            if (isLossOperation(opRsp)) {
-                log.error("[PollingResponse] operation loss, msg:{}", opRsp.getStatus().getMessage());
+            if (StatusHelper.isLossOperation(opRsp.getStatus())) {
+                log.error("[PollingResponse] operation loss, rsp:\n{}", opRsp);
                 throw new BizException("operation loss, please feedback to bytedance");
             }
-            operation = opRsp.getOperation();
+            Operation operation = opRsp.getOperation();
             // The task corresponding to this operation has been completed,
             // and the execution result  can be obtained through "operation.response"
             if (operation.getDone()) {
@@ -219,13 +213,13 @@ public class RequestHelper {
             }
             try {
                 // Pause some time to prevent server overload
-                Thread.sleep(POLLING_INTERVAL_MILLIS);
+                Thread.sleep(POLLING_INTERVAL.toMillis());
             } catch (InterruptedException e) {
                 throw new BizException(e.getMessage());
             }
-        }
+        } while (LocalTime.now().isBefore(endTime));
         log.error("[PollingResponse] timeout after {}", POLLING_TIMEOUT);
-        throw new BizException("polling operation result timeout");
+        throw new BizException("polling import result timeout");
     }
 
     private OperationResponse getPollingOperation(String name) throws BizException {
@@ -236,17 +230,14 @@ public class RequestHelper {
         try {
             return client.getOperation(request, Option.withTimeout(GET_OPERATION_TIMEOUT));
         } catch (NetException e) {
-            // An exception should not be thrown.
-            // Throwing an exception means the request could not continue
-            // When polling for import results, you should continue polling
-            // until the maximum polling time is exceeded, as long as there is
-            // no obvious error that should not continue, such as server telling
-            // operation lost, parse response body fail, etc
+            log.warn("[PollingResponse] get operation fail, name:{} msg:{}", name, e.getMessage());
+            // The NetException should not be thrown.
+            // Throwing an exception means the request could not continue,
+            // while polling for import results should be continue until the
+            // maximum polling time is exceeded, as long as there is no obvious
+            // error that should not continue, such as server telling operation lost,
+            // parse response body fail, etc.
             return null;
         }
-    }
-
-    private static boolean isLossOperation(OperationResponse opRsp) {
-        return opRsp.getStatus().getCode() == OPERATION_LOSS_STATUS_CODE;
     }
 }

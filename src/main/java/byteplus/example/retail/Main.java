@@ -1,8 +1,9 @@
 package byteplus.example.retail;
 
 import byteplus.retail.sdk.protocol.ByteplusRetail.AckServerImpressionsRequest;
+import byteplus.retail.sdk.protocol.ByteplusRetail.AckServerImpressionsRequest.AlteredProduct;
 import byteplus.retail.sdk.protocol.ByteplusRetail.DateConfig;
-import byteplus.retail.sdk.protocol.ByteplusRetail.ImportErrorsConfig;
+import byteplus.retail.sdk.protocol.ByteplusRetail.GetOperationRequest;
 import byteplus.retail.sdk.protocol.ByteplusRetail.ImportProductsRequest;
 import byteplus.retail.sdk.protocol.ByteplusRetail.ImportProductsResponse;
 import byteplus.retail.sdk.protocol.ByteplusRetail.ImportUserEventsRequest;
@@ -12,9 +13,11 @@ import byteplus.retail.sdk.protocol.ByteplusRetail.ImportUsersResponse;
 import byteplus.retail.sdk.protocol.ByteplusRetail.ListOperationsRequest;
 import byteplus.retail.sdk.protocol.ByteplusRetail.ListOperationsResponse;
 import byteplus.retail.sdk.protocol.ByteplusRetail.Operation;
+import byteplus.retail.sdk.protocol.ByteplusRetail.OperationResponse;
 import byteplus.retail.sdk.protocol.ByteplusRetail.PredictRequest;
 import byteplus.retail.sdk.protocol.ByteplusRetail.PredictResponse;
 import byteplus.retail.sdk.protocol.ByteplusRetail.PredictResult;
+import byteplus.retail.sdk.protocol.ByteplusRetail.PredictResult.ResponseProduct;
 import byteplus.retail.sdk.protocol.ByteplusRetail.Product;
 import byteplus.retail.sdk.protocol.ByteplusRetail.ProductsInlineSource;
 import byteplus.retail.sdk.protocol.ByteplusRetail.ProductsInputConfig;
@@ -31,8 +34,8 @@ import byteplus.retail.sdk.protocol.ByteplusRetail.WriteUserEventsResponse;
 import byteplus.retail.sdk.protocol.ByteplusRetail.WriteUsersRequest;
 import byteplus.retail.sdk.protocol.ByteplusRetail.WriteUsersResponse;
 import byteplus.sdk.core.BizException;
+import byteplus.sdk.core.NetException;
 import byteplus.sdk.core.Option;
-import byteplus.sdk.core.Options;
 import byteplus.sdk.core.Region;
 import byteplus.sdk.retail.RetailClient;
 import byteplus.sdk.retail.RetailClientBuilder;
@@ -49,6 +52,7 @@ import java.util.Arrays;
 import java.util.Collections;
 import java.util.List;
 import java.util.Map;
+import java.util.Objects;
 import java.util.UUID;
 
 import static byteplus.sdk.core.Constant.RCF3339;
@@ -67,18 +71,23 @@ public class Main {
 
     private final static Duration DEFAULT_IMPORT_TIMEOUT = Duration.ofMillis(800);
 
+    private final static Duration DEFAULT_GET_OPERATION_TIMEOUT = Duration.ofMillis(800);
+
+    private final static Duration DEFAULT_LIST_OPERATIONS_TIMEOUT = Duration.ofMillis(800);
+
     private final static Duration DEFAULT_PREDICT_TIMEOUT = Duration.ofMillis(800);
 
     private final static Duration DEFAULT_ACK_IMPRESSIONS_TIMEOUT = Duration.ofMillis(800);
 
-    private final static Duration DEFAULT_LIST_OPERATIONS_TIMEOUT = Duration.ofMillis(800);
 
     static {
         client = new RetailClientBuilder()
-                .tenant(Constant.TENANT)
-                .tenantId(Constant.TENANT_ID)
-                .token(Constant.TOKEN)
-                .region(Region.OTHER)
+                .tenant(Constant.TENANT) // Required
+                .tenantId(Constant.TENANT_ID) // Required
+                .token(Constant.TOKEN) // Required
+                .region(Region.OTHER) //Required
+                .schema("https") //Optional
+                .headers(Collections.singletonMap("Customer-Header", "value")) // Optional
                 .build();
         requestHelper = new RequestHelper(client);
         concurrentHelper = new ConcurrentHelper(client);
@@ -120,6 +129,11 @@ public class Main {
         // Concurrent import daily offline user event data
         concurrentImportUserEventsExample();
 
+        // Obtain Operation information according to operationName,
+        // if the corresponding task is executing, the real-time
+        // result of task execution will be returned
+        getOperationExample();
+
         // Lists operations that match the specified filter in the request.
         // It can be used to retrieve the task when losing 'operation.name',
         // or to statistic the execution of the task within the specified range,
@@ -143,7 +157,7 @@ public class Main {
     public static void writeUsersExample() {
         // The "WriteXXX" api can transfer max to 100 items at one request
         WriteUsersRequest request = buildWriteUsersRequest(1);
-        Options.Filler[] opts = buildOptions(DEFAULT_WRITE_TIMEOUT);
+        Option[] opts = defaultOptions(DEFAULT_WRITE_TIMEOUT);
         WriteUsersResponse response;
         try {
             response = requestHelper.doWithRetry(client::writeUsers, request, opts, DEFAULT_RETRY_TIMES);
@@ -151,24 +165,25 @@ public class Main {
             log.error("write user occur err, msg:{}", e.getMessage());
             return;
         }
-        if (StatusHelper.isWriteSuccess(response.getStatus())) {
+        if (StatusHelper.isUploadSuccess(response.getStatus())) {
             log.info("write user success");
             return;
         }
-        log.error("write suer find fail, msg:{} errItems:{}", response.getStatus(), response.getErrorsList());
+        log.error("write user find failure info, msg:{} errItems:{}",
+                response.getStatus(), response.getErrorsList());
     }
 
-    private static void concurrentWriteUsersExample() {
+    public static void concurrentWriteUsersExample() {
         // The "WriteXXX" api can transfer max to 100 items at one request
         WriteUsersRequest request = buildWriteUsersRequest(1);
-        Options.Filler[] opts = buildOptions(DEFAULT_WRITE_TIMEOUT);
+        Option[] opts = defaultOptions(DEFAULT_WRITE_TIMEOUT);
         try {
             concurrentHelper.submitRequest(request, opts);
         } catch (BizException ignore) {
         }
     }
 
-    public static WriteUsersRequest buildWriteUsersRequest(int count) {
+    private static WriteUsersRequest buildWriteUsersRequest(int count) {
         List<User> users = MockHelper.mockUsers(count);
         return WriteUsersRequest.newBuilder()
                 .addAllUsers(users)
@@ -180,7 +195,7 @@ public class Main {
         // The "ImportXXX" api can transfer max to 10k items at one request
         ImportUsersRequest request = buildImportUsersRequest(10);
         Parser<ImportUsersResponse> rspParser = ImportUsersResponse.parser();
-        Options.Filler[] opts = buildOptions(DEFAULT_IMPORT_TIMEOUT);
+        Option[] opts = defaultOptions(DEFAULT_IMPORT_TIMEOUT);
         ImportUsersResponse response;
         try {
             response = requestHelper.doImport(client::importUsers, request, opts, rspParser, DEFAULT_RETRY_TIMES);
@@ -199,14 +214,14 @@ public class Main {
     public static void concurrentImportUsersExample() {
         // The "ImportXXX" api can transfer max to 10k items at one request
         ImportUsersRequest request = buildImportUsersRequest(10);
-        Options.Filler[] opts = buildOptions(DEFAULT_IMPORT_TIMEOUT);
+        Option[] opts = defaultOptions(DEFAULT_IMPORT_TIMEOUT);
         try {
             concurrentHelper.submitRequest(request, opts);
         } catch (BizException ignore) {
         }
     }
 
-    public static ImportUsersRequest buildImportUsersRequest(int count) {
+    private static ImportUsersRequest buildImportUsersRequest(int count) {
         UsersInlineSource inlineSource = UsersInlineSource.newBuilder()
                 .addAllUsers(MockHelper.mockUsers(count))
                 .build();
@@ -219,20 +234,16 @@ public class Main {
                 .setIsEnd(false)
                 .build();
 
-        ImportErrorsConfig errorsConfig = ImportErrorsConfig.newBuilder()
-                .build();
-
         return ImportUsersRequest.newBuilder()
                 .setInputConfig(inputConfig)
                 .setDateConfig(dateConfig)
-                .setErrorsConfig(errorsConfig)
                 .build();
     }
 
     public static void writeProductsExample() {
         // The "WriteXXX" api can transfer max to 100 items at one request
         WriteProductsRequest request = buildWriteProductsRequest(1);
-        Options.Filler[] options = buildOptions(DEFAULT_WRITE_TIMEOUT);
+        Option[] options = defaultOptions(DEFAULT_WRITE_TIMEOUT);
         WriteProductsResponse response;
         try {
             response = requestHelper.doWithRetry(client::writeProducts, request, options, DEFAULT_RETRY_TIMES);
@@ -240,7 +251,7 @@ public class Main {
             log.error("write product occur err, msg:{}", e.getMessage());
             return;
         }
-        if (StatusHelper.isWriteSuccess(response.getStatus())) {
+        if (StatusHelper.isUploadSuccess(response.getStatus())) {
             log.info("write product success");
             return;
         }
@@ -248,17 +259,17 @@ public class Main {
                 response.getStatus(), response.getErrorsList());
     }
 
-    private static void concurrentWriteProductsExample() {
+    public static void concurrentWriteProductsExample() {
         // The "WriteXXX" api can transfer max to 100 items at one request
         WriteProductsRequest request = buildWriteProductsRequest(1);
-        Options.Filler[] opts = buildOptions(DEFAULT_WRITE_TIMEOUT);
+        Option[] opts = defaultOptions(DEFAULT_WRITE_TIMEOUT);
         try {
             concurrentHelper.submitRequest(request, opts);
         } catch (BizException ignore) {
         }
     }
 
-    public static WriteProductsRequest buildWriteProductsRequest(int count) {
+    private static WriteProductsRequest buildWriteProductsRequest(int count) {
         List<Product> products = MockHelper.mockProducts(count);
         return WriteProductsRequest.newBuilder()
                 .addAllProducts(products)
@@ -270,7 +281,7 @@ public class Main {
         // The "ImportXXX" api can transfer max to 10k items at one request
         ImportProductsRequest request = buildImportProductsRequest(10);
         Parser<ImportProductsResponse> rspParser = ImportProductsResponse.parser();
-        Options.Filler[] opts = buildOptions(DEFAULT_IMPORT_TIMEOUT);
+        Option[] opts = defaultOptions(DEFAULT_IMPORT_TIMEOUT);
         ImportProductsResponse response;
         try {
             response = requestHelper.doImport(client::importProducts, request, opts, rspParser, DEFAULT_RETRY_TIMES);
@@ -289,14 +300,14 @@ public class Main {
     public static void concurrentImportProductsExample() {
         // The "ImportXXX" api can transfer max to 10k items at one request
         ImportProductsRequest request = buildImportProductsRequest(10);
-        Options.Filler[] opts = buildOptions(DEFAULT_IMPORT_TIMEOUT);
+        Option[] opts = defaultOptions(DEFAULT_IMPORT_TIMEOUT);
         try {
             concurrentHelper.submitRequest(request, opts);
         } catch (BizException ignore) {
         }
     }
 
-    public static ImportProductsRequest buildImportProductsRequest(int count) {
+    private static ImportProductsRequest buildImportProductsRequest(int count) {
         ProductsInlineSource inlineSource = ProductsInlineSource.newBuilder()
                 .addAllProducts(MockHelper.mockProducts(count))
                 .build();
@@ -309,20 +320,16 @@ public class Main {
                 .setIsEnd(false)
                 .build();
 
-        ImportErrorsConfig errorsConfig = ImportErrorsConfig.newBuilder()
-                .build();
-
         return ImportProductsRequest.newBuilder()
                 .setInputConfig(inputConfig)
                 .setDateConfig(dateConfig)
-                .setErrorsConfig(errorsConfig)
                 .build();
     }
 
     public static void writeUserEventsExample() {
         // The "WriteXXX" api can transfer max to 100 items at one request
         WriteUserEventsRequest request = buildWriteUserEventsRequest(1);
-        Options.Filler[] options = buildOptions(DEFAULT_WRITE_TIMEOUT);
+        Option[] options = defaultOptions(DEFAULT_WRITE_TIMEOUT);
         WriteUserEventsResponse response;
         try {
             response = requestHelper.doWithRetry(client::writeUserEvents, request, options, DEFAULT_RETRY_TIMES);
@@ -330,7 +337,7 @@ public class Main {
             log.error("write user events occur err, msg:{}", e.getMessage());
             return;
         }
-        if (StatusHelper.isWriteSuccess(response.getStatus())) {
+        if (StatusHelper.isUploadSuccess(response.getStatus())) {
             log.info("write user events success");
             return;
         }
@@ -338,17 +345,17 @@ public class Main {
                 response.getStatus(), response.getErrorsList());
     }
 
-    private static void concurrentWriteUserEventsExample() {
+    public static void concurrentWriteUserEventsExample() {
         // The "WriteXXX" api can transfer max to 100 items at one request
         WriteUserEventsRequest request = buildWriteUserEventsRequest(1);
-        Options.Filler[] opts = buildOptions(DEFAULT_WRITE_TIMEOUT);
+        Option[] opts = defaultOptions(DEFAULT_WRITE_TIMEOUT);
         try {
             concurrentHelper.submitRequest(request, opts);
         } catch (BizException ignore) {
         }
     }
 
-    public static WriteUserEventsRequest buildWriteUserEventsRequest(int count) {
+    private static WriteUserEventsRequest buildWriteUserEventsRequest(int count) {
         List<UserEvent> userEvents = MockHelper.mockUserEvents(count);
         return WriteUserEventsRequest.newBuilder()
                 .addAllUserEvents(userEvents)
@@ -360,7 +367,7 @@ public class Main {
         // The "ImportXXX" api can transfer max to 10k items at one request
         ImportUserEventsRequest request = buildImportUserEventsRequest(10);
         Parser<ImportUserEventsResponse> rspParser = ImportUserEventsResponse.parser();
-        Options.Filler[] opts = buildOptions(DEFAULT_IMPORT_TIMEOUT);
+        Option[] opts = defaultOptions(DEFAULT_IMPORT_TIMEOUT);
         ImportUserEventsResponse response;
         try {
             response = requestHelper.doImport(client::importUserEvents, request, opts, rspParser, DEFAULT_RETRY_TIMES);
@@ -379,14 +386,14 @@ public class Main {
     public static void concurrentImportUserEventsExample() {
         // The "ImportXXX" api can transfer max to 10k items at one request
         ImportUserEventsRequest request = buildImportUserEventsRequest(10);
-        Options.Filler[] opts = buildOptions(DEFAULT_IMPORT_TIMEOUT);
+        Option[] opts = defaultOptions(DEFAULT_IMPORT_TIMEOUT);
         try {
             concurrentHelper.submitRequest(request, opts);
         } catch (BizException ignore) {
         }
     }
 
-    public static ImportUserEventsRequest buildImportUserEventsRequest(int count) {
+    private static ImportUserEventsRequest buildImportUserEventsRequest(int count) {
         UserEventsInlineSource inlineSource = UserEventsInlineSource.newBuilder()
                 .addAllUserEvents(MockHelper.mockUserEvents(count))
                 .build();
@@ -400,20 +407,40 @@ public class Main {
                 .setIsEnd(false)
                 .build();
 
-        ImportErrorsConfig errorsConfig = ImportErrorsConfig.newBuilder()
-                .build();
-
         return ImportUserEventsRequest.newBuilder()
                 .setInputConfig(inputConfig)
                 .setDateConfig(dateConfig)
-                .setErrorsConfig(errorsConfig)
                 .build();
     }
 
-    private static void listOperationsExample() {
+    public static void getOperationExample() {
+        GetOperationRequest request = GetOperationRequest
+                .newBuilder()
+                .setName("750eca88-5165-4aae-851f-a93b75a27b03")
+                .build();
+        Option[] opts = defaultOptions(DEFAULT_GET_OPERATION_TIMEOUT);
+        OperationResponse response;
+        try {
+            response = client.getOperation(request, opts);
+        } catch (NetException | BizException e) {
+            log.error("get operation occur error, msg:{}", e.getMessage());
+            return;
+        }
+        if (StatusHelper.isSuccess(response.getStatus())) {
+            log.info("get operation success rsp:\n{}", response);
+            return;
+        }
+        if (StatusHelper.isLossOperation(response.getStatus())) {
+            log.error("operation loss, name:{}", request.getName());
+            return;
+        }
+        log.error("get operation find failure info, rsp:\n{}", response);
+    }
+
+    public static void listOperationsExample() {
         // The "pageToken" is empty when you get the first page
         ListOperationsRequest request = buildListOperationsRequest("");
-        Options.Filler[] opts = buildOptions(DEFAULT_LIST_OPERATIONS_TIMEOUT);
+        Option[] opts = defaultOptions(DEFAULT_LIST_OPERATIONS_TIMEOUT);
         ListOperationsResponse response;
         try {
             response = client.listOperations(request, opts);
@@ -442,8 +469,11 @@ public class Main {
                 .build();
     }
 
-    private static void parseTaskResponse(List<Operation> operationsList) {
-        for (Operation operation : operationsList) {
+    private static void parseTaskResponse(List<Operation> operations) {
+        if (Objects.isNull(operations) || operations.isEmpty()) {
+            return;
+        }
+        for (Operation operation : operations) {
             if (!operation.getDone()) {
                 continue;
             }
@@ -464,7 +494,7 @@ public class Main {
                     importUserEventsRsp = ImportUserEventsResponse.parseFrom(responseAny.getValue());
                     log.info("[ListOperations] ImportUserEvents rsp:\n{}", importUserEventsRsp);
                 } else {
-                    log.error("[ListOperations] unexpected task response type:{}", responseAny.getTypeUrl());
+                    log.error("[ListOperations] unexpected task response type:{}", typeUrl);
                 }
             } catch (InvalidProtocolBufferException e) {
                 log.error("[ListOperations] parse task response fail, msg:{}", e.getMessage());
@@ -472,85 +502,35 @@ public class Main {
         }
     }
 
-
     public static void recommendExample() {
         PredictRequest predictRequest = buildPredictRequest();
-        Options.Filler[] opts = buildOptions(DEFAULT_PREDICT_TIMEOUT);
+        Option[] predict_opts = defaultOptions(DEFAULT_PREDICT_TIMEOUT);
         PredictResponse response;
         try {
-            response = client.predict(predictRequest, "home", opts);
+            // The "home" is scene name, which provided by ByteDance, usually is "home"
+            response = client.predict(predictRequest, "home", predict_opts);
         } catch (Exception e) {
             log.error("predict occur error, msg:{}", e.getMessage());
             return;
         }
         if (!StatusHelper.isSuccess(response.getStatus())) {
-            log.info("predict return failure info, msg:{}", response.getStatus());
+            log.error("predict find failure info, msg:{}", response.getStatus());
             return;
         }
         log.info("predict success");
-
-        List<AckServerImpressionsRequest.AlteredProduct> alteredProducts =
-                doSomethingWithPredictResult(response.getValue());
-
         // The items, which is eventually shown to user,
         // should send back to Bytedance for deduplication
-        AckServerImpressionsRequest ackServerImpressionsRequest =
-                buildAckServerImpressionsRequest(response.getRequestId(), predictRequest, alteredProducts);
-        opts = buildOptions(DEFAULT_ACK_IMPRESSIONS_TIMEOUT);
+        List<AlteredProduct> alteredProducts = doSomethingWithPredictResult(response.getValue());
+        AckServerImpressionsRequest ackRequest =
+                buildAckRequest(response.getRequestId(), predictRequest, alteredProducts);
+        Option[] ack_opts = defaultOptions(DEFAULT_ACK_IMPRESSIONS_TIMEOUT);
         try {
-            concurrentHelper.submitRequest(ackServerImpressionsRequest, opts);
+            concurrentHelper.submitRequest(ackRequest, ack_opts);
         } catch (BizException ignore) {
         }
     }
 
-    private static List<AckServerImpressionsRequest.AlteredProduct>
-    doSomethingWithPredictResult(PredictResult predictResult) {
-        // You can handle recommend results here,
-        // such as filter, insert other items, sort again, etc.
-        // The list of goods finally displayed to user and the filtered goods
-        // should be sent back to bytedance for deduplication
-        return conv2AlterProducts(predictResult);
-    }
-
-    private static AckServerImpressionsRequest buildAckServerImpressionsRequest(
-            String requestId,
-            PredictRequest predictRequest,
-            List<AckServerImpressionsRequest.AlteredProduct> alteredProducts) {
-
-        return AckServerImpressionsRequest.newBuilder()
-                .setPredictRequestId(requestId)
-                .setUserId(predictRequest.getUserId())
-                .setScene(predictRequest.getScene())
-                .addAllAlteredProducts(alteredProducts)
-                .build();
-    }
-
-    @NotNull
-    private static List<AckServerImpressionsRequest.AlteredProduct> conv2AlterProducts(
-            PredictResult rspValue) {
-
-        List<PredictResult.ResponseProduct> responseProducts =
-                rspValue.getResponseProductsList();
-        List<AckServerImpressionsRequest.AlteredProduct> alteredProducts =
-                new ArrayList<>(rspValue.getResponseProductsCount());
-
-        for (int i = 0; i < responseProducts.size(); i++) {
-            PredictResult.ResponseProduct responseProduct = responseProducts.get(i);
-            AckServerImpressionsRequest.AlteredProduct alteredProduct =
-                    AckServerImpressionsRequest
-                            .AlteredProduct
-                            .newBuilder()
-                            .setAlteredReason("kept")
-                            .setProductId(responseProduct.getProductId())
-                            .setRank(i + 1)
-                            .build();
-
-            alteredProducts.add(alteredProduct);
-        }
-        return alteredProducts;
-    }
-
-    public static PredictRequest buildPredictRequest() {
+    private static PredictRequest buildPredictRequest() {
         UserEvent.Scene scene = UserEvent.Scene.newBuilder()
                 .setSceneName("home")
                 .build();
@@ -574,13 +554,53 @@ public class Main {
                 .build();
     }
 
-    private static Options.Filler[] buildOptions(Duration defaultWriteTimeout) {
+    private static List<AlteredProduct> doSomethingWithPredictResult(PredictResult predictResult) {
+        // You can handle recommend results here,
+        // such as filter, insert other items, sort again, etc.
+        // The list of goods finally displayed to user and the filtered goods
+        // should be sent back to bytedance for deduplication
+        return conv2AlteredProducts(predictResult.getResponseProductsList());
+    }
+
+    @NotNull
+    private static List<AlteredProduct> conv2AlteredProducts(List<ResponseProduct> products) {
+        if (Objects.isNull(products) || products.isEmpty()) {
+            return Collections.emptyList();
+        }
+        List<AlteredProduct> alteredProducts = new ArrayList<>(products.size());
+        for (int i = 0; i < products.size(); i++) {
+            ResponseProduct responseProduct = products.get(i);
+            AlteredProduct alteredProduct = AlteredProduct.newBuilder()
+                    .setAlteredReason("kept")
+                    .setProductId(responseProduct.getProductId())
+                    .setRank(i + 1)
+                    .build();
+
+            alteredProducts.add(alteredProduct);
+        }
+        return alteredProducts;
+    }
+
+    private static AckServerImpressionsRequest buildAckRequest(
+            String predictRequestId,
+            PredictRequest predictRequest,
+            List<AlteredProduct> alteredProducts) {
+
+        return AckServerImpressionsRequest.newBuilder()
+                .setPredictRequestId(predictRequestId)
+                .setUserId(predictRequest.getUserId())
+                .setScene(predictRequest.getScene())
+                .addAllAlteredProducts(alteredProducts)
+                .build();
+    }
+
+    private static Option[] defaultOptions(Duration timeout) {
         // All options are optional
-        Map<String, String> headers = Collections.emptyMap();
-        return new Options.Filler[]{
+        Map<String, String> customerHeaders = Collections.emptyMap();
+        return new Option[]{
                 Option.withRequestId(UUID.randomUUID().toString()),
-                Option.withTimeout(defaultWriteTimeout),
-                Option.withHeaders(headers)
+                Option.withTimeout(timeout),
+                Option.withHeaders(customerHeaders)
         };
     }
 }

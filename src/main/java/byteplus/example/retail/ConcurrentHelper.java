@@ -1,9 +1,7 @@
 package byteplus.example.retail;
 
-import byteplus.sdk.core.BizException;
-import byteplus.sdk.core.Options;
-import byteplus.retail.sdk.protocol.ByteplusRetail.*;
 import byteplus.retail.sdk.protocol.ByteplusRetail.AckServerImpressionsRequest;
+import byteplus.retail.sdk.protocol.ByteplusRetail.AckServerImpressionsResponse;
 import byteplus.retail.sdk.protocol.ByteplusRetail.ImportProductsRequest;
 import byteplus.retail.sdk.protocol.ByteplusRetail.ImportProductsResponse;
 import byteplus.retail.sdk.protocol.ByteplusRetail.ImportUserEventsRequest;
@@ -11,8 +9,13 @@ import byteplus.retail.sdk.protocol.ByteplusRetail.ImportUserEventsResponse;
 import byteplus.retail.sdk.protocol.ByteplusRetail.ImportUsersRequest;
 import byteplus.retail.sdk.protocol.ByteplusRetail.ImportUsersResponse;
 import byteplus.retail.sdk.protocol.ByteplusRetail.WriteProductsRequest;
+import byteplus.retail.sdk.protocol.ByteplusRetail.WriteProductsResponse;
 import byteplus.retail.sdk.protocol.ByteplusRetail.WriteUserEventsRequest;
+import byteplus.retail.sdk.protocol.ByteplusRetail.WriteUserEventsResponse;
 import byteplus.retail.sdk.protocol.ByteplusRetail.WriteUsersRequest;
+import byteplus.retail.sdk.protocol.ByteplusRetail.WriteUsersResponse;
+import byteplus.sdk.core.BizException;
+import byteplus.sdk.core.Option;
 import byteplus.sdk.retail.RetailClient;
 import com.google.protobuf.Parser;
 import lombok.extern.slf4j.Slf4j;
@@ -59,7 +62,7 @@ public class ConcurrentHelper {
     // It is recommended to increase the data amount contained in a single request.
     // It is not recommended to use too many concurrent imports,
     // which may lead to server overload and limit the flow of the request
-    public void submitRequest(Object request, Options.Filler... opts) throws BizException {
+    public void submitRequest(Object request, Option... opts) throws BizException {
         Handler handler;
         if (request instanceof WriteUsersRequest) {
             handler = new Handler(TaskType.WRITE_USERS, request, opts);
@@ -76,7 +79,7 @@ public class ConcurrentHelper {
         } else if (request instanceof AckServerImpressionsRequest) {
             handler = new Handler(TaskType.ACK_IMPRESSION, request, opts);
         } else {
-            throw new BizException("can't support this request");
+            throw new BizException("can't support this request type");
         }
         executor.execute(handler);
     }
@@ -94,9 +97,9 @@ public class ConcurrentHelper {
     private class Handler implements Runnable {
         private final TaskType type;
         private final Object request;
-        private final Options.Filler[] opts;
+        private final Option[] opts;
 
-        private Handler(TaskType type, Object request, Options.Filler... opts) throws BizException {
+        private Handler(TaskType type, Object request, Option... opts) {
             this.type = type;
             this.request = request;
             this.opts = opts;
@@ -135,9 +138,9 @@ public class ConcurrentHelper {
                         requestHelper.doWithRetry(client::writeUsers, request, opts, RETRY_TIMES);
                 if (StatusHelper.isSuccess(response.getStatus())) {
                     log.info("[AsyncWriteUsers] success");
-                } else {
-                    log.error("[AsyncWriteUsers] fail, rsp:\n{}", response);
+                    return;
                 }
+                log.error("[AsyncWriteUsers] fail, rsp:\n{}", response);
             } catch (Throwable e) {
                 log.error("[AsyncWriteUsers] occur error, msg:{}", e.getMessage());
             }
@@ -150,9 +153,9 @@ public class ConcurrentHelper {
                         requestHelper.doImport(client::importUsers, request, opts, parser, RETRY_TIMES);
                 if (StatusHelper.isSuccess(response.getStatus())) {
                     log.info("[AsyncImportUsers] success");
-                } else {
-                    log.error("[AsyncImportUsers] fail, rsp:\n{}", response);
+                    return;
                 }
+                log.error("[AsyncImportUsers] fail, rsp:\n{}", response);
             } catch (Throwable e) {
                 log.error("[AsyncImportUsers] occur error, msg:{}", e.getMessage());
             }
@@ -164,9 +167,9 @@ public class ConcurrentHelper {
                         requestHelper.doWithRetry(client::writeProducts, request, opts, RETRY_TIMES);
                 if (StatusHelper.isSuccess(response.getStatus())) {
                     log.info("[AsyncWriteProducts] success");
-                } else {
-                    log.error("[AsyncWriteProducts] fail, rsp:\n{}", response);
+                    return;
                 }
+                log.error("[AsyncWriteProducts] fail, rsp:\n{}", response);
             } catch (Throwable e) {
                 log.error("[AsyncWriteProducts] occur error, msg:{}", e.getMessage());
             }
@@ -179,9 +182,9 @@ public class ConcurrentHelper {
                         requestHelper.doImport(client::importProducts, request, opts, parser, RETRY_TIMES);
                 if (StatusHelper.isSuccess(response.getStatus())) {
                     log.info("[AsyncImportProducts] success");
-                } else {
-                    log.error("[AsyncImportProducts] fail, rsp:\n{}", response);
+                    return;
                 }
+                log.error("[AsyncImportProducts] fail, rsp:\n{}", response);
             } catch (Throwable e) {
                 log.error("[AsyncImportProducts] occur error, msg:{}", e.getMessage());
             }
@@ -193,9 +196,9 @@ public class ConcurrentHelper {
                         requestHelper.doWithRetry(client::writeUserEvents, request, opts, RETRY_TIMES);
                 if (StatusHelper.isSuccess(response.getStatus())) {
                     log.info("[AsyncWriteUserEvents] success");
-                } else {
-                    log.error("[AsyncWriteUserEvents] fail, rsp:\n{}", response);
+                    return;
                 }
+                log.error("[AsyncWriteUserEvents] fail, rsp:\n{}", response);
             } catch (Throwable e) {
                 log.error("[AsyncWriteUserEvents] occur error, msg:{}", e.getMessage());
             }
@@ -208,9 +211,9 @@ public class ConcurrentHelper {
                         requestHelper.doImport(client::importUserEvents, request, opts, parser, RETRY_TIMES);
                 if (StatusHelper.isSuccess(response.getStatus())) {
                     log.info("[AsyncImportUserEvents] success");
-                } else {
-                    log.error("[AsyncImportUserEvents] fail, rsp:\n{}", response);
+                    return;
                 }
+                log.error("[AsyncImportUserEvents] fail, rsp:\n{}", response);
             } catch (Throwable e) {
                 log.error("[AsyncImportUserEvents] occur error, msg:{}", e.getMessage());
             }
@@ -222,9 +225,9 @@ public class ConcurrentHelper {
                         requestHelper.doWithRetry(client::ackServerImpressions, request, opts, RETRY_TIMES);
                 if (StatusHelper.isSuccess(response.getStatus())) {
                     log.info("[AsyncAckImpression] success");
-                } else {
-                    log.error("[AsyncAckImpression] fail, rsp:\n{}", response);
+                    return;
                 }
+                log.error("[AsyncAckImpression] fail, rsp:\n{}", response);
             } catch (Throwable e) {
                 log.error("[AsyncAckImpression] occur error, msg:{}", e.getMessage());
             }
