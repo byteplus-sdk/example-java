@@ -1,44 +1,42 @@
 package byteplus.example.retail;
 
-import byteplus.retail.sdk.protocol.ByteplusRetail.AckServerImpressionsRequest;
-import byteplus.retail.sdk.protocol.ByteplusRetail.AckServerImpressionsRequest.AlteredProduct;
-import byteplus.retail.sdk.protocol.ByteplusRetail.DateConfig;
-import byteplus.retail.sdk.protocol.ByteplusRetail.GetOperationRequest;
-import byteplus.retail.sdk.protocol.ByteplusRetail.ImportProductsRequest;
-import byteplus.retail.sdk.protocol.ByteplusRetail.ImportProductsResponse;
-import byteplus.retail.sdk.protocol.ByteplusRetail.ImportUserEventsRequest;
-import byteplus.retail.sdk.protocol.ByteplusRetail.ImportUserEventsResponse;
-import byteplus.retail.sdk.protocol.ByteplusRetail.ImportUsersRequest;
-import byteplus.retail.sdk.protocol.ByteplusRetail.ImportUsersResponse;
-import byteplus.retail.sdk.protocol.ByteplusRetail.ListOperationsRequest;
-import byteplus.retail.sdk.protocol.ByteplusRetail.ListOperationsResponse;
-import byteplus.retail.sdk.protocol.ByteplusRetail.Operation;
-import byteplus.retail.sdk.protocol.ByteplusRetail.OperationResponse;
-import byteplus.retail.sdk.protocol.ByteplusRetail.PredictRequest;
-import byteplus.retail.sdk.protocol.ByteplusRetail.PredictResponse;
-import byteplus.retail.sdk.protocol.ByteplusRetail.PredictResult;
-import byteplus.retail.sdk.protocol.ByteplusRetail.PredictResult.ResponseProduct;
-import byteplus.retail.sdk.protocol.ByteplusRetail.Product;
-import byteplus.retail.sdk.protocol.ByteplusRetail.ProductsInlineSource;
-import byteplus.retail.sdk.protocol.ByteplusRetail.ProductsInputConfig;
-import byteplus.retail.sdk.protocol.ByteplusRetail.User;
-import byteplus.retail.sdk.protocol.ByteplusRetail.UserEvent;
-import byteplus.retail.sdk.protocol.ByteplusRetail.UserEventsInlineSource;
-import byteplus.retail.sdk.protocol.ByteplusRetail.UserEventsInputConfig;
-import byteplus.retail.sdk.protocol.ByteplusRetail.UsersInlineSource;
-import byteplus.retail.sdk.protocol.ByteplusRetail.UsersInputConfig;
-import byteplus.retail.sdk.protocol.ByteplusRetail.WriteProductsRequest;
-import byteplus.retail.sdk.protocol.ByteplusRetail.WriteProductsResponse;
-import byteplus.retail.sdk.protocol.ByteplusRetail.WriteUserEventsRequest;
-import byteplus.retail.sdk.protocol.ByteplusRetail.WriteUserEventsResponse;
-import byteplus.retail.sdk.protocol.ByteplusRetail.WriteUsersRequest;
-import byteplus.retail.sdk.protocol.ByteplusRetail.WriteUsersResponse;
+import byteplus.example.common.Example;
+import byteplus.example.common.RequestHelper;
+import byteplus.example.common.StatusHelper;
+import byteplus.sdk.common.protocol.ByteplusCommon.Operation;
 import byteplus.sdk.core.BizException;
-import byteplus.sdk.core.NetException;
 import byteplus.sdk.core.Option;
 import byteplus.sdk.core.Region;
 import byteplus.sdk.retail.RetailClient;
 import byteplus.sdk.retail.RetailClientBuilder;
+import byteplus.sdk.retail.protocol.ByteplusRetail.AckServerImpressionsRequest;
+import byteplus.sdk.retail.protocol.ByteplusRetail.AckServerImpressionsRequest.AlteredProduct;
+import byteplus.sdk.retail.protocol.ByteplusRetail.DateConfig;
+import byteplus.sdk.retail.protocol.ByteplusRetail.ImportProductsRequest;
+import byteplus.sdk.retail.protocol.ByteplusRetail.ImportProductsResponse;
+import byteplus.sdk.retail.protocol.ByteplusRetail.ImportUserEventsRequest;
+import byteplus.sdk.retail.protocol.ByteplusRetail.ImportUserEventsResponse;
+import byteplus.sdk.retail.protocol.ByteplusRetail.ImportUsersRequest;
+import byteplus.sdk.retail.protocol.ByteplusRetail.ImportUsersResponse;
+import byteplus.sdk.retail.protocol.ByteplusRetail.PredictRequest;
+import byteplus.sdk.retail.protocol.ByteplusRetail.PredictResponse;
+import byteplus.sdk.retail.protocol.ByteplusRetail.PredictResult;
+import byteplus.sdk.retail.protocol.ByteplusRetail.PredictResult.ResponseProduct;
+import byteplus.sdk.retail.protocol.ByteplusRetail.Product;
+import byteplus.sdk.retail.protocol.ByteplusRetail.ProductsInlineSource;
+import byteplus.sdk.retail.protocol.ByteplusRetail.ProductsInputConfig;
+import byteplus.sdk.retail.protocol.ByteplusRetail.User;
+import byteplus.sdk.retail.protocol.ByteplusRetail.UserEvent;
+import byteplus.sdk.retail.protocol.ByteplusRetail.UserEventsInlineSource;
+import byteplus.sdk.retail.protocol.ByteplusRetail.UserEventsInputConfig;
+import byteplus.sdk.retail.protocol.ByteplusRetail.UsersInlineSource;
+import byteplus.sdk.retail.protocol.ByteplusRetail.UsersInputConfig;
+import byteplus.sdk.retail.protocol.ByteplusRetail.WriteProductsRequest;
+import byteplus.sdk.retail.protocol.ByteplusRetail.WriteProductsResponse;
+import byteplus.sdk.retail.protocol.ByteplusRetail.WriteUserEventsRequest;
+import byteplus.sdk.retail.protocol.ByteplusRetail.WriteUserEventsResponse;
+import byteplus.sdk.retail.protocol.ByteplusRetail.WriteUsersRequest;
+import byteplus.sdk.retail.protocol.ByteplusRetail.WriteUsersResponse;
 import com.google.protobuf.Any;
 import com.google.protobuf.InvalidProtocolBufferException;
 import com.google.protobuf.Parser;
@@ -47,6 +45,7 @@ import org.jetbrains.annotations.NotNull;
 
 import java.time.Duration;
 import java.time.ZonedDateTime;
+import java.time.format.DateTimeFormatter;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collections;
@@ -54,8 +53,6 @@ import java.util.List;
 import java.util.Map;
 import java.util.Objects;
 import java.util.UUID;
-
-import static byteplus.sdk.core.Constant.RCF3339;
 
 @Slf4j
 public class Main {
@@ -70,10 +67,6 @@ public class Main {
     private final static Duration DEFAULT_WRITE_TIMEOUT = Duration.ofMillis(800);
 
     private final static Duration DEFAULT_IMPORT_TIMEOUT = Duration.ofMillis(800);
-
-    private final static Duration DEFAULT_GET_OPERATION_TIMEOUT = Duration.ofMillis(800);
-
-    private final static Duration DEFAULT_LIST_OPERATIONS_TIMEOUT = Duration.ofMillis(800);
 
     private final static Duration DEFAULT_PREDICT_TIMEOUT = Duration.ofMillis(800);
 
@@ -177,10 +170,7 @@ public class Main {
         // The "WriteXXX" api can transfer max to 100 items at one request
         WriteUsersRequest request = buildWriteUsersRequest(1);
         Option[] opts = defaultOptions(DEFAULT_WRITE_TIMEOUT);
-        try {
-            concurrentHelper.submitRequest(request, opts);
-        } catch (BizException ignore) {
-        }
+        concurrentHelper.submitRequest(request, opts);
     }
 
     private static WriteUsersRequest buildWriteUsersRequest(int count) {
@@ -215,10 +205,7 @@ public class Main {
         // The "ImportXXX" api can transfer max to 10k items at one request
         ImportUsersRequest request = buildImportUsersRequest(10);
         Option[] opts = defaultOptions(DEFAULT_IMPORT_TIMEOUT);
-        try {
-            concurrentHelper.submitRequest(request, opts);
-        } catch (BizException ignore) {
-        }
+        concurrentHelper.submitRequest(request, opts);
     }
 
     private static ImportUsersRequest buildImportUsersRequest(int count) {
@@ -230,7 +217,7 @@ public class Main {
                 .build();
 
         DateConfig dateConfig = DateConfig.newBuilder()
-                .setDate(ZonedDateTime.now().format(RCF3339))
+                .setDate(ZonedDateTime.now().format(DateTimeFormatter.ISO_OFFSET_DATE_TIME))
                 .setIsEnd(false)
                 .build();
 
@@ -263,10 +250,7 @@ public class Main {
         // The "WriteXXX" api can transfer max to 100 items at one request
         WriteProductsRequest request = buildWriteProductsRequest(1);
         Option[] opts = defaultOptions(DEFAULT_WRITE_TIMEOUT);
-        try {
-            concurrentHelper.submitRequest(request, opts);
-        } catch (BizException ignore) {
-        }
+        concurrentHelper.submitRequest(request, opts);
     }
 
     private static WriteProductsRequest buildWriteProductsRequest(int count) {
@@ -301,10 +285,7 @@ public class Main {
         // The "ImportXXX" api can transfer max to 10k items at one request
         ImportProductsRequest request = buildImportProductsRequest(10);
         Option[] opts = defaultOptions(DEFAULT_IMPORT_TIMEOUT);
-        try {
-            concurrentHelper.submitRequest(request, opts);
-        } catch (BizException ignore) {
-        }
+        concurrentHelper.submitRequest(request, opts);
     }
 
     private static ImportProductsRequest buildImportProductsRequest(int count) {
@@ -316,7 +297,7 @@ public class Main {
                 .build();
 
         DateConfig dateConfig = DateConfig.newBuilder()
-                .setDate(ZonedDateTime.now().format(RCF3339))
+                .setDate(ZonedDateTime.now().format(DateTimeFormatter.ISO_OFFSET_DATE_TIME))
                 .setIsEnd(false)
                 .build();
 
@@ -349,10 +330,7 @@ public class Main {
         // The "WriteXXX" api can transfer max to 100 items at one request
         WriteUserEventsRequest request = buildWriteUserEventsRequest(1);
         Option[] opts = defaultOptions(DEFAULT_WRITE_TIMEOUT);
-        try {
-            concurrentHelper.submitRequest(request, opts);
-        } catch (BizException ignore) {
-        }
+        concurrentHelper.submitRequest(request, opts);
     }
 
     private static WriteUserEventsRequest buildWriteUserEventsRequest(int count) {
@@ -387,10 +365,7 @@ public class Main {
         // The "ImportXXX" api can transfer max to 10k items at one request
         ImportUserEventsRequest request = buildImportUserEventsRequest(10);
         Option[] opts = defaultOptions(DEFAULT_IMPORT_TIMEOUT);
-        try {
-            concurrentHelper.submitRequest(request, opts);
-        } catch (BizException ignore) {
-        }
+        concurrentHelper.submitRequest(request, opts);
     }
 
     private static ImportUserEventsRequest buildImportUserEventsRequest(int count) {
@@ -403,7 +378,7 @@ public class Main {
                 .build();
 
         DateConfig dateConfig = DateConfig.newBuilder()
-                .setDate(ZonedDateTime.now().format(RCF3339))
+                .setDate(ZonedDateTime.now().format(DateTimeFormatter.ISO_OFFSET_DATE_TIME))
                 .setIsEnd(false)
                 .build();
 
@@ -414,59 +389,12 @@ public class Main {
     }
 
     public static void getOperationExample() {
-        GetOperationRequest request = GetOperationRequest
-                .newBuilder()
-                .setName("750eca88-5165-4aae-851f-a93b75a27b03")
-                .build();
-        Option[] opts = defaultOptions(DEFAULT_GET_OPERATION_TIMEOUT);
-        OperationResponse response;
-        try {
-            response = client.getOperation(request, opts);
-        } catch (NetException | BizException e) {
-            log.error("get operation occur error, msg:{}", e.getMessage());
-            return;
-        }
-        if (StatusHelper.isSuccess(response.getStatus())) {
-            log.info("get operation success rsp:\n{}", response);
-            return;
-        }
-        if (StatusHelper.isLossOperation(response.getStatus())) {
-            log.error("operation loss, name:{}", request.getName());
-            return;
-        }
-        log.error("get operation find failure info, rsp:\n{}", response);
+        Example.getOperationExample(client, "750eca88-5165-4aae-851f-a93b75a27b03");
     }
 
     public static void listOperationsExample() {
-        // The "pageToken" is empty when you get the first page
-        ListOperationsRequest request = buildListOperationsRequest("");
-        Option[] opts = defaultOptions(DEFAULT_LIST_OPERATIONS_TIMEOUT);
-        ListOperationsResponse response;
-        try {
-            response = client.listOperations(request, opts);
-        } catch (Exception e) {
-            log.error("list operations occur err, msg:{}", e.getMessage());
-            return;
-        }
-        if (!StatusHelper.isSuccess(response.getStatus())) {
-            log.error("list operations find failure info, msg:\n{}", response.getStatus());
-            return;
-        }
-        log.info("list operations success");
-        parseTaskResponse(response.getOperationsList());
-        // When you get the next Page, you need to put the "nextPageToken"
-        // returned by this Page into the request of next Page
-        ListOperationsRequest nextPageRequest = buildListOperationsRequest(response.getNextPageToken());
-        // request next page
-    }
-
-    private static ListOperationsRequest buildListOperationsRequest(String pageToken) {
-        String filter = "date>=2021-06-15 and worksOn=ImportUsers and done=true";
-        return ListOperationsRequest.newBuilder()
-                .setFilter(filter)
-                .setPageSize(3)
-                .setPageToken(pageToken)
-                .build();
+        List<Operation> operations = Example.listOperationsExample(client);
+        parseTaskResponse(operations);
     }
 
     private static void parseTaskResponse(List<Operation> operations) {
@@ -524,10 +452,7 @@ public class Main {
         AckServerImpressionsRequest ackRequest =
                 buildAckRequest(response.getRequestId(), predictRequest, alteredProducts);
         Option[] ack_opts = defaultOptions(DEFAULT_ACK_IMPRESSIONS_TIMEOUT);
-        try {
-            concurrentHelper.submitRequest(ackRequest, ack_opts);
-        } catch (BizException ignore) {
-        }
+        concurrentHelper.submitRequest(ackRequest, ack_opts);
     }
 
     private static PredictRequest buildPredictRequest() {

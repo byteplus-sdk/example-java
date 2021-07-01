@@ -1,13 +1,13 @@
-package byteplus.example.retail;
+package byteplus.example.common;
 
-import byteplus.retail.sdk.protocol.ByteplusRetail.GetOperationRequest;
-import byteplus.retail.sdk.protocol.ByteplusRetail.Operation;
-import byteplus.retail.sdk.protocol.ByteplusRetail.OperationResponse;
-import byteplus.retail.sdk.protocol.ByteplusRetail.Status;
+import byteplus.sdk.common.CommonClient;
 import byteplus.sdk.core.BizException;
 import byteplus.sdk.core.NetException;
 import byteplus.sdk.core.Option;
-import byteplus.sdk.retail.RetailClient;
+import byteplus.sdk.common.protocol.ByteplusCommon.GetOperationRequest;
+import byteplus.sdk.common.protocol.ByteplusCommon.Operation;
+import byteplus.sdk.common.protocol.ByteplusCommon.OperationResponse;
+import byteplus.sdk.common.protocol.ByteplusCommon.Status;
 import com.google.protobuf.Any;
 import com.google.protobuf.InvalidProtocolBufferException;
 import com.google.protobuf.Message;
@@ -36,17 +36,17 @@ public class RequestHelper {
 
     private final static Duration GET_OPERATION_TIMEOUT = Duration.ofMillis(500);
 
-    private final RetailClient client;
+    private final CommonClient client;
 
-    interface Callable<Rsp extends Message, Req extends Message> {
+    public interface Callable<Rsp extends Message, Req> {
         Rsp call(Req req, Option... opts) throws BizException, NetException;
     }
 
-    public RequestHelper(RetailClient client) {
+    public RequestHelper(CommonClient client) {
         this.client = client;
     }
 
-    public <Rsp extends Message, Req extends Message> Rsp doImport(
+    public <Rsp extends Message, Req> Rsp doImport(
             Callable<OperationResponse, Req> callable,
             Req req,
             Option[] opts,
@@ -76,7 +76,7 @@ public class RequestHelper {
      * @return the response of task
      * @throws BizException throw by task or server still overload after retry
      */
-    public <Rsp extends Message, Req extends Message> Rsp doWithRetryAlthoughOverload(
+    public <Rsp extends Message, Req> Rsp doWithRetryAlthoughOverload(
             Callable<Rsp, Req> callable,
             Req req,
             Option[] opts,
@@ -104,7 +104,7 @@ public class RequestHelper {
         throw new BizException("Server overload");
     }
 
-    public <Rsp extends Message, Req extends Message> Rsp doWithRetry(
+    public <Rsp extends Message, Req> Rsp doWithRetry(
             Callable<Rsp, Req> callable,
             Req req,
             Option[] opts,

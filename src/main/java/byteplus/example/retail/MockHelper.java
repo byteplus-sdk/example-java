@@ -1,7 +1,7 @@
 package byteplus.example.retail;
 
 
-import byteplus.retail.sdk.protocol.ByteplusRetail.*;
+import byteplus.sdk.retail.protocol.ByteplusRetail.*;
 
 import java.util.ArrayList;
 import java.util.Arrays;
