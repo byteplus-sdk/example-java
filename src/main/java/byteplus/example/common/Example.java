@@ -36,7 +36,7 @@ public class Example {
             return;
         }
         if (StatusHelper.isSuccess(response.getStatus())) {
-            log.info("get operation success rsp:\n{}", response);
+            log.info("get operation success");
             return;
         }
         if (StatusHelper.isLossOperation(response.getStatus())) {
@@ -46,9 +46,9 @@ public class Example {
         log.error("get operation find failure info, rsp:\n{}", response);
     }
 
-    public static List<Operation> listOperationsExample(CommonClient client) {
+    public static List<Operation> listOperationsExample(CommonClient client, String filter) {
         // The "pageToken" is empty when getting the first page
-        ListOperationsRequest request = buildListOperationsRequest("");
+        ListOperationsRequest request = buildListOperationsRequest(filter, "");
         Option[] opts = new Option[]{
                 Option.withTimeout(DEFAULT_LIST_OPERATIONS_TIMEOUT),
         };
@@ -71,8 +71,7 @@ public class Example {
         // request next page
     }
 
-    private static ListOperationsRequest buildListOperationsRequest(String pageToken) {
-        String filter = "date>=2021-06-15 and worksOn=ImportUsers and done=true";
+    private static ListOperationsRequest buildListOperationsRequest(String filter, String pageToken) {
         return ListOperationsRequest.newBuilder()
                 .setFilter(filter)
                 .setPageSize(3)

@@ -393,7 +393,8 @@ public class Main {
     }
 
     public static void listOperationsExample() {
-        List<Operation> operations = Example.listOperationsExample(client);
+        String filter = "date>=2021-06-15 and worksOn=ImportUsers and done=true";
+        List<Operation> operations = Example.listOperationsExample(client, filter);
         parseTaskResponse(operations);
     }
 

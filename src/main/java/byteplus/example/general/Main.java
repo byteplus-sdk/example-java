@@ -4,7 +4,8 @@ import byteplus.example.common.Example;
 import byteplus.example.common.RequestHelper;
 import byteplus.example.common.RequestHelper.Callable;
 import byteplus.example.common.StatusHelper;
-import byteplus.sdk.common.protocol.ByteplusCommon.*;
+import byteplus.sdk.common.protocol.ByteplusCommon.Operation;
+import byteplus.sdk.common.protocol.ByteplusCommon.OperationResponse;
 import byteplus.sdk.core.BizException;
 import byteplus.sdk.core.Option;
 import byteplus.sdk.core.Region;
@@ -30,7 +31,16 @@ import java.util.Map;
 import java.util.Objects;
 import java.util.UUID;
 
-import static byteplus.sdk.general.protocol.ByteplusGeneral.*;
+import static byteplus.sdk.general.protocol.ByteplusGeneral.CallbackItem;
+import static byteplus.sdk.general.protocol.ByteplusGeneral.CallbackRequest;
+import static byteplus.sdk.general.protocol.ByteplusGeneral.DoneResponse;
+import static byteplus.sdk.general.protocol.ByteplusGeneral.PredictCandidateItem;
+import static byteplus.sdk.general.protocol.ByteplusGeneral.PredictContext;
+import static byteplus.sdk.general.protocol.ByteplusGeneral.PredictExtra;
+import static byteplus.sdk.general.protocol.ByteplusGeneral.PredictRelatedItem;
+import static byteplus.sdk.general.protocol.ByteplusGeneral.PredictResultItem;
+import static byteplus.sdk.general.protocol.ByteplusGeneral.PredictUser;
+import static byteplus.sdk.general.protocol.ByteplusGeneral.SearchCondition;
 
 @Slf4j
 public class Main {
@@ -45,6 +55,8 @@ public class Main {
     private final static Duration DEFAULT_WRITE_TIMEOUT = Duration.ofMillis(800);
 
     private final static Duration DEFAULT_IMPORT_TIMEOUT = Duration.ofMillis(800);
+
+    private final static Duration DEFAULT_Done_TIMEOUT = Duration.ofMillis(800);
 
     private final static Duration DEFAULT_PREDICT_TIMEOUT = Duration.ofMillis(800);
 
@@ -76,10 +88,16 @@ public class Main {
         writeDataExample();
         // Write real-time data concurrently
         concurrentWriteDataExample();
+
         // Import daily offline data
         importDataExample();
         // Import daily offline data concurrently
         concurrentImportDataExample();
+
+        // Mark some day's data has been entirely imported
+        doneExample();
+        // Do 'done' request concurrently
+        concurrentDoneExample();
 
         // Obtain Operation information according to operationName,
         // if the corresponding task is executing, the real-time
@@ -211,12 +229,46 @@ public class Main {
         };
     }
 
+    private static void doneExample() {
+        LocalDate date = LocalDate.of(2021, 6, 10);
+        List<LocalDate> dateList = Collections.singletonList(date);
+        // The `topic` is some enums provided by bytedance,
+        // who according to tenant's situation
+        String topic = "user_event";
+        Option[] opts = defaultOptions(DEFAULT_Done_TIMEOUT);
+        Callable<DoneResponse, List<LocalDate>> call
+                = (req, optList) -> client.done(req, topic, optList);
+        DoneResponse response;
+        try {
+            response = requestHelper.doWithRetry(call, dateList, opts, DEFAULT_RETRY_TIMES);
+        } catch (BizException e) {
+            log.error("[Done] occur error, msg:{}", e.getMessage());
+            return;
+        }
+        if (StatusHelper.isSuccess(response.getStatus())) {
+            log.info("[Done] success");
+            return;
+        }
+        log.error("[Done] find failure info, rsp:{}", response);
+    }
+
+    private static void concurrentDoneExample() {
+        LocalDate date = LocalDate.of(2021, 6, 10);
+        List<LocalDate> dateList = Collections.singletonList(date);
+        // The `topic` is some enums provided by bytedance,
+        // who according to tenant's situation
+        String topic = "user_event";
+        Option[] opts = defaultOptions(DEFAULT_Done_TIMEOUT);
+        concurrentHelper.submitDoneRequest(dateList, topic, opts);
+    }
+
     public static void getOperationExample() {
         Example.getOperationExample(client, "0c5a1145-2c12-4b83-8998-2ae8153ca089");
     }
 
     public static void listOperationsExample() {
-        List<Operation> operations = Example.listOperationsExample(client);
+        String filter = "date>=2021-06-15 and done=true";
+        List<Operation> operations = Example.listOperationsExample(client, filter);
         parseTaskResponse(operations);
     }
 
@@ -230,8 +282,7 @@ public class Main {
             // To ensure compatibility, do not parse response by 'Any.unpack()'
             try {
                 if (typeUrl.contains("ImportResponse")) {
-                    ImportResponse importResponse;
-                    importResponse = ImportResponse.parseFrom(responseAny.getValue());
+                    ImportResponse importResponse = ImportResponse.parseFrom(responseAny.getValue());
                     log.info("[ListOperations] import rsp:\n{}", importResponse);
                 } else {
                     log.error("[ListOperations] unexpected task response type:{}", typeUrl);
@@ -244,13 +295,13 @@ public class Main {
 
     public static void recommendExample() {
         PredictRequest predictRequest = buildPredictRequest();
-        Option[] predict_opts = defaultOptions(DEFAULT_PREDICT_TIMEOUT);
+        Option[] predictOpts = defaultOptions(DEFAULT_PREDICT_TIMEOUT);
         PredictResponse predictResponse;
         // The `scene` is provided by ByteDance,
         // who according to tenant's situation
         String scene = "home";
         try {
-            predictResponse = client.predict(predictRequest, scene, predict_opts);
+            predictResponse = client.predict(predictRequest, scene, predictOpts);
         } catch (Exception e) {
             log.error("predict occur error, msg:{}", e.getMessage());
             return;
@@ -269,8 +320,8 @@ public class Main {
                 .setScene(scene)
                 .addAllItems(callbackItems)
                 .build();
-        Option[] ack_opts = defaultOptions(DEFAULT_CALLBACK_TIMEOUT);
-        concurrentHelper.submitCallbackRequest(callbackRequest, ack_opts);
+        Option[] ackOpts = defaultOptions(DEFAULT_CALLBACK_TIMEOUT);
+        concurrentHelper.submitCallbackRequest(callbackRequest, ackOpts);
     }
 
     private static PredictRequest buildPredictRequest() {
@@ -329,13 +380,13 @@ public class Main {
 
     public static void searchExample() {
         PredictRequest predictRequest = buildSearchRequest();
-        Option[] predict_opts = defaultOptions(DEFAULT_PREDICT_TIMEOUT);
+        Option[] opts = defaultOptions(DEFAULT_PREDICT_TIMEOUT);
         PredictResponse predictResponse;
         // The `scene` is provided by ByteDance,
         // that usually is "search" in search request
         String scene = "search";
         try {
-            predictResponse = client.predict(predictRequest, scene, predict_opts);
+            predictResponse = client.predict(predictRequest, scene, opts);
         } catch (Exception e) {
             log.error("search occur error, msg:{}", e.getMessage());
             return;
