@@ -144,6 +144,7 @@ public class Main {
         } catch (InterruptedException ignored) {
 
         }
+        client.release();
         System.exit(0);
     }
 
@@ -389,7 +390,8 @@ public class Main {
     }
 
     public static void getOperationExample() {
-        Example.getOperationExample(client, "750eca88-5165-4aae-851f-a93b75a27b03");
+        String name = "750eca88-5165-4aae-851f-a93b75a27b03";
+        Example.getOperationExample(client, name);
     }
 
     public static void listOperationsExample() {

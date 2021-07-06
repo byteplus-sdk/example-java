@@ -56,7 +56,7 @@ public class Main {
 
     private final static Duration DEFAULT_IMPORT_TIMEOUT = Duration.ofMillis(800);
 
-    private final static Duration DEFAULT_Done_TIMEOUT = Duration.ofMillis(800);
+    private final static Duration DEFAULT_DONE_TIMEOUT = Duration.ofMillis(800);
 
     private final static Duration DEFAULT_PREDICT_TIMEOUT = Duration.ofMillis(800);
 
@@ -124,6 +124,7 @@ public class Main {
         } catch (InterruptedException ignored) {
 
         }
+        client.release();
         System.exit(0);
     }
 
@@ -235,7 +236,7 @@ public class Main {
         // The `topic` is some enums provided by bytedance,
         // who according to tenant's situation
         String topic = "user_event";
-        Option[] opts = defaultOptions(DEFAULT_Done_TIMEOUT);
+        Option[] opts = defaultOptions(DEFAULT_DONE_TIMEOUT);
         Callable<DoneResponse, List<LocalDate>> call
                 = (req, optList) -> client.done(req, topic, optList);
         DoneResponse response;
@@ -258,12 +259,13 @@ public class Main {
         // The `topic` is some enums provided by bytedance,
         // who according to tenant's situation
         String topic = "user_event";
-        Option[] opts = defaultOptions(DEFAULT_Done_TIMEOUT);
+        Option[] opts = defaultOptions(DEFAULT_DONE_TIMEOUT);
         concurrentHelper.submitDoneRequest(dateList, topic, opts);
     }
 
     public static void getOperationExample() {
-        Example.getOperationExample(client, "0c5a1145-2c12-4b83-8998-2ae8153ca089");
+        String name = "0c5a1145-2c12-4b83-8998-2ae8153ca089";
+        Example.getOperationExample(client, name);
     }
 
     public static void listOperationsExample() {
@@ -297,8 +299,7 @@ public class Main {
         PredictRequest predictRequest = buildPredictRequest();
         Option[] predictOpts = defaultOptions(DEFAULT_PREDICT_TIMEOUT);
         PredictResponse predictResponse;
-        // The `scene` is provided by ByteDance,
-        // who according to tenant's situation
+        // The `scene` is provided by ByteDance, according to tenant's situation
         String scene = "home";
         try {
             predictResponse = client.predict(predictRequest, scene, predictOpts);
@@ -379,20 +380,20 @@ public class Main {
     }
 
     public static void searchExample() {
-        PredictRequest predictRequest = buildSearchRequest();
+        PredictRequest searchRequest = buildSearchRequest();
         Option[] opts = defaultOptions(DEFAULT_PREDICT_TIMEOUT);
-        PredictResponse predictResponse;
+        PredictResponse searchResponse;
         // The `scene` is provided by ByteDance,
         // that usually is "search" in search request
         String scene = "search";
         try {
-            predictResponse = client.predict(predictRequest, scene, opts);
+            searchResponse = client.predict(searchRequest, scene, opts);
         } catch (Exception e) {
             log.error("search occur error, msg:{}", e.getMessage());
             return;
         }
-        if (!StatusHelper.isSuccess(predictResponse.getCode())) {
-            log.error("search find failure info, msg:{}", predictResponse);
+        if (!StatusHelper.isSuccess(searchResponse.getCode())) {
+            log.error("search find failure info, msg:{}", searchResponse);
             return;
         }
         log.info("search success");
