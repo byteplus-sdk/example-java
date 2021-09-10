@@ -11,7 +11,7 @@ public final class Constant {
     public final static String TENANT_ID = "xxxxxx";
 
     //个性化推荐服务新建的项目id(project_id)，如"1231314"
-    public final static String TENANT = "xxxxxx";
+    public final static String PROJECT_ID = "xxxxxx";
 
     /**
      * stage枚举值，与推荐平台四种同步阶段相对应

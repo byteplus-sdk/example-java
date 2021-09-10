@@ -4,7 +4,6 @@ import byteplus.example.common.Example;
 import byteplus.example.common.RequestHelper;
 import byteplus.example.common.RequestHelper.Callable;
 import byteplus.example.common.StatusHelper;
-import byteplus.sdk.common.protocol.ByteplusCommon.Operation;
 import byteplus.sdk.common.protocol.ByteplusCommon.OperationResponse;
 import byteplus.sdk.core.BizException;
 import byteplus.sdk.core.Option;
@@ -13,16 +12,12 @@ import byteplus.sdk.general.GeneralClient;
 import byteplus.sdk.general.GeneralClientBuilder;
 import byteplus.sdk.general.protocol.ByteplusGeneral.*;
 import com.alibaba.fastjson.JSON;
-import com.google.protobuf.Any;
-import com.google.protobuf.InvalidProtocolBufferException;
 import com.google.protobuf.Parser;
 import lombok.extern.slf4j.Slf4j;
 
 import java.time.Duration;
 import java.time.LocalDate;
 import java.util.*;
-
-import static byteplus.sdk.general.protocol.ByteplusGeneral.*;
 
 @Slf4j
 public class Main {
@@ -46,7 +41,7 @@ public class Main {
 
     static {
         client = new GeneralClientBuilder()
-                .tenant(Constant.TENANT) // 必传
+                .tenant(Constant.PROJECT_ID) // 必传，项目id
                 .tenantId(Constant.TENANT_ID) // 必传
                 .token(Constant.TOKEN) // 必传
                 .region(Region.AIR) //必传，必须填Region.AIR，默认使用byteair-api-cn1.snssdk.com为host
