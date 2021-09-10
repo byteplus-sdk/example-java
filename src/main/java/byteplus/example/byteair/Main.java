@@ -51,7 +51,7 @@ public class Main {
                 .token(Constant.TOKEN) // 必传
                 .region(Region.AIR) //必传，必须填Region.AIR，默认使用byteair-api-cn1.snssdk.com为host
                 .hosts(Collections.singletonList("byteair-api-cn1.snssdk.com"))//可选，如果设置了region则host可不设置
-                .schema("http") //可选，仅支持"https"和"http"
+                .schema("https") //可选，仅支持"https"和"http"
 //              .headers(Collections.singletonMap("Customer-Header", "value")) // 可选，添加自定义header
                 .build();
         requestHelper = new RequestHelper(client);
@@ -101,7 +101,7 @@ public class Main {
         List<Map<String, Object>> dataList = MockHelper.mockDataList(2);
         Option[] opts = writeOptions();
         // topic为枚举值，请参考API文档
-        String topic = "behavior";
+        String topic = Constant.TOPIC_USER;
         WriteResponse response;
         try {
             Callable<WriteResponse, List<Map<String, Object>>> call
@@ -125,22 +125,22 @@ public class Main {
     public static void concurrentWriteDataExample() {
         List<Map<String, Object>> dataList = MockHelper.mockDataList(2);
         Option[] opts = writeOptions();
-        String topic = "behavior";
+        String topic = Constant.TOPIC_USER;
         concurrentHelper.submitWriteRequest(dataList, topic, opts);
     }
 
     // Write请求参数说明，请根据说明修改
     private static Option[] writeOptions() {
-        Map<String, String> customerHeaders = Collections.emptyMap();
+        // Map<String, String> customerHeaders = Collections.emptyMap();
         return new Option[]{
                 // 必选. Write接口只能用于实时数据传输，此处只能填"incremental_sync_streaming"
-                Option.withStage("incremental_sync_streaming"),
+                Option.withStage(Constant.STAGE_INCREMENTAL_SYNC_STREAMING),
                 // 必传，要求每次请求的Request-Id不重复，若未传，sdk会默认为每个请求添加
                 Option.withRequestId(UUID.randomUUID().toString()),
                 // 可选，请求超时时间
                 Option.withTimeout(DEFAULT_WRITE_TIMEOUT),
                 // 可选. 添加自定义header.
-                Option.withHeaders(customerHeaders),
+                // Option.withHeaders(customerHeaders),
                 // 可选. 服务端期望在一定时间内返回，避免客户端超时前响应无法返回。
                 // 此服务器超时应小于Write请求设置的总超时。
                 Option.withServerTimeout(DEFAULT_WRITE_TIMEOUT.minus(Duration.ofMillis(100))),
@@ -151,7 +151,7 @@ public class Main {
     public static void importDataExample() {
         // 一个“Import”请求中包含的数据条数最多为10k，如果数据太多，服务器将拒绝请求。
         List<Map<String, Object>> dataList = MockHelper.mockDataList(2);
-        String topic = "behavior";
+        String topic = Constant.TOPIC_USER;
         Option[] opts = importOptions();
         ImportResponse response;
         Parser<ImportResponse> rspParser = ImportResponse.parser();
@@ -174,18 +174,18 @@ public class Main {
     // 离线天级数据并发/异步上传example
     public static void concurrentImportDataExample() {
         List<Map<String, Object>> dataList = MockHelper.mockDataList(2);
-        String topic = "user";
+        String topic = Constant.TOPIC_USER;
         Option[] opts = importOptions();
         concurrentHelper.submitImportRequest(dataList, topic, opts);
     }
 
     // Import请求参数说明，请根据说明修改
     private static Option[] importOptions() {
-        Map<String, String> customerHeaders = Collections.emptyMap();
+        // Map<String, String> customerHeaders = Collections.emptyMap();
         return new Option[]{
                 // 必选， Import接口数据传输阶段，包括：
                 // 测试数据/预同步阶段（"pre_sync"）、历史数据同步（"history_sync"）和增量天级数据上传（"incremental_sync_daily"）
-                Option.withStage("pre_sync"),
+                Option.withStage(Constant.STAGE_PRE_SYNC),
                 // 必传，要求每次请求的Request-Id不重复，若未传，sdk会默认为每个请求添加
                 Option.withRequestId(UUID.randomUUID().toString()),
                 // 可选，请求超时时间
@@ -193,7 +193,7 @@ public class Main {
                 // 必传，数据产生日期，实际传输时需修改为实际日期
                 Option.withDataDate(LocalDate.of(2021, 8, 27)),
                 // 可选. 添加自定义header.
-                Option.withHeaders(customerHeaders),
+                // Option.withHeaders(customerHeaders),
         };
     }
 
@@ -203,7 +203,7 @@ public class Main {
         // 已经上传完成的数据日期，可在一次请求中传多个
         List<LocalDate> dateList = Collections.singletonList(date);
         // 与离线天级数据传输的topic保持一致
-        String topic = "behavior";
+        String topic = Constant.TOPIC_USER;
         Option[] opts = doneOptions();
         Callable<DoneResponse, List<LocalDate>> call
                 = (req, optList) -> client.done(req, topic, optList);
@@ -227,24 +227,24 @@ public class Main {
         List<LocalDate> dateList = Collections.singletonList(date);
         // The `topic` is some enums provided by bytedance,
         // who according to tenant's situation
-        String topic = "behavior";
+        String topic = Constant.TOPIC_USER;
         Option[] opts = doneOptions();
         concurrentHelper.submitDoneRequest(dateList, topic, opts);
     }
 
     // Done请求参数说明，请根据说明修改
     private static Option[] doneOptions() {
-        Map<String, String> customerHeaders = Collections.emptyMap();
+        // Map<String, String> customerHeaders = Collections.emptyMap();
         return new Option[]{
                 // 必选，与Import接口数据传输阶段保持一致，包括：
                 // 测试数据/预同步阶段（"pre_sync"）、历史数据同步（"history_sync"）和增量天级数据上传（"incremental_sync_daily"）
-                Option.withStage("pre_sync"),
+                Option.withStage(Constant.STAGE_PRE_SYNC),
                 // 必传，要求每次请求的Request-Id不重复，若未传，sdk会默认为每个请求添加
                 Option.withRequestId(UUID.randomUUID().toString()),
                 // 可选，请求超时时间
                 Option.withTimeout(DEFAULT_DONE_TIMEOUT),
                 // 可选，自定义header
-                Option.withHeaders(customerHeaders)
+                // Option.withHeaders(customerHeaders)
         };
     }
 
