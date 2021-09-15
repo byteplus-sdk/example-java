@@ -78,9 +78,9 @@ public class Main {
                 .tenant(Constant.TENANT) // Required
                 .tenantId(Constant.TENANT_ID) // Required
                 .token(Constant.TOKEN) // Required
-                .region(Region.OTHER) //Required
-                .schema("https") //Optional
-                .headers(Collections.singletonMap("Customer-Header", "value")) // Optional
+                .region(Region.SG) //Required, select enum value according to your region
+//                .schema("https") //Optional
+//                .headers(Collections.singletonMap("Customer-Header", "value")) // Optional
                 .build();
         requestHelper = new RequestHelper(client);
         concurrentHelper = new ConcurrentHelper(client);
@@ -524,11 +524,11 @@ public class Main {
 
     private static Option[] defaultOptions(Duration timeout) {
         // All options are optional
-        Map<String, String> customerHeaders = Collections.emptyMap();
+//        Map<String, String> customerHeaders = Collections.emptyMap();
         return new Option[]{
                 Option.withRequestId(UUID.randomUUID().toString()),
                 Option.withTimeout(timeout),
-                Option.withHeaders(customerHeaders)
+//                Option.withHeaders(customerHeaders)
         };
     }
 }
