@@ -5,13 +5,13 @@ public final class Constant {
      * 租户相关信息
      */
     //字节侧提供，用于签名
-    public final static String TOKEN = "xxxxxxxxx";
+    public final static String TOKEN = "xxxxx";
 
     //火山引擎申请的账号id/租户id(tenant_id)，如"2100021"
-    public final static String TENANT_ID = "xxxxxx";
+    public final static String TENANT_ID = "xxxxxxx";
 
     //个性化推荐服务新建的项目id(project_id)，如"1231314"
-    public final static String PROJECT_ID = "xxxxxx";
+    public final static String PROJECT_ID = "xxxxxxxx";
 
     /**
      * stage枚举值，与推荐平台四种同步阶段相对应
@@ -39,4 +39,7 @@ public final class Constant {
 
     // 行为
     public final static String TOPIC_BEHAVIOR = "behavior";
+
+    // DefaultPredictScene 产品化目前的predict scene可不填，默认为"default"
+    public final static String DEFAULT_PREDICT_SCENE = "default";
 }

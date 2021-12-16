@@ -3,11 +3,9 @@ package byteplus.example.byteair;
 import byteplus.example.common.RequestHelper;
 import byteplus.example.common.RequestHelper.Callable;
 import byteplus.example.common.StatusHelper;
-import byteplus.sdk.common.protocol.ByteplusCommon.OperationResponse;
+import byteplus.sdk.byteair.ByteairClient;
 import byteplus.sdk.core.Option;
-import byteplus.sdk.general.GeneralClient;
-import byteplus.sdk.general.protocol.ByteplusGeneral.*;
-import com.google.protobuf.Parser;
+import byteplus.sdk.byteair.protocol.ByteplusByteair.*;
 import lombok.extern.slf4j.Slf4j;
 
 import java.time.LocalDate;
@@ -39,11 +37,11 @@ public class ConcurrentHelper {
             new ThreadPoolExecutor.CallerRunsPolicy()
     );
 
-    private final GeneralClient client;
+    private final ByteairClient client;
 
     private final RequestHelper requestHelper;
 
-    public ConcurrentHelper(GeneralClient client) {
+    public ConcurrentHelper(ByteairClient client) {
         this.client = client;
         this.requestHelper = new RequestHelper(client);
     }
@@ -57,10 +55,6 @@ public class ConcurrentHelper {
     // which may lead to server overload and limit the flow of the request
     public void submitWriteRequest(List<Map<String, Object>> dataList, String topic, Option... opts) {
         executor.submit(() -> doWrite(dataList, topic, opts));
-    }
-
-    public void submitImportRequest(List<Map<String, Object>> dataList, String topic, Option... opts) {
-        executor.submit(() -> doImport(dataList, topic, opts));
     }
 
     public void submitDoneRequest(List<LocalDate> dateList, String topic, Option... opts) {
@@ -90,24 +84,6 @@ public class ConcurrentHelper {
                 response.getStatus(), response.getErrorsList());
     }
 
-    private void doImport(List<Map<String, Object>> dataList, String topic, Option... opts) {
-        ImportResponse response;
-        Parser<ImportResponse> rspParser = ImportResponse.parser();
-        Callable<OperationResponse, List<Map<String, Object>>> call
-                = (req, optList) -> client.importData(req, topic, optList);
-        try {
-            response = requestHelper.doImport(call, dataList, opts, rspParser, RETRY_TIMES);
-        } catch (Throwable e) {
-            log.error("[AsyncImport] occur error, msg:{}", e.getMessage());
-            return;
-        }
-        if (StatusHelper.isSuccess(response.getStatus())) {
-            log.info("[AsyncImport] success");
-            return;
-        }
-        log.error("[AsyncImport] find failure info, msg:{} errSampleItems:{}",
-                response.getStatus(), response.getErrorSamplesList());
-    }
 
     private void doDone(List<LocalDate> dateList, String topic, Option... opts) {
         DoneResponse response;
