@@ -6,6 +6,7 @@ import byteplus.example.common.StatusHelper;
 import byteplus.sdk.common.protocol.ByteplusCommon.OperationResponse;
 import byteplus.sdk.core.Option;
 import byteplus.sdk.general.GeneralClient;
+import byteplus.sdk.common.protocol.ByteplusCommon.DoneResponse;
 import byteplus.sdk.general.protocol.ByteplusGeneral.*;
 import com.google.protobuf.Parser;
 import lombok.extern.slf4j.Slf4j;

@@ -31,9 +31,9 @@ import java.util.Map;
 import java.util.Objects;
 import java.util.UUID;
 
+import static byteplus.sdk.common.protocol.ByteplusCommon.DoneResponse;
 import static byteplus.sdk.general.protocol.ByteplusGeneral.CallbackItem;
 import static byteplus.sdk.general.protocol.ByteplusGeneral.CallbackRequest;
-import static byteplus.sdk.general.protocol.ByteplusGeneral.DoneResponse;
 import static byteplus.sdk.general.protocol.ByteplusGeneral.PredictCandidateItem;
 import static byteplus.sdk.general.protocol.ByteplusGeneral.PredictContext;
 import static byteplus.sdk.general.protocol.ByteplusGeneral.PredictExtra;

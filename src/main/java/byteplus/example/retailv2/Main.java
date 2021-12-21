@@ -3,13 +3,13 @@ package byteplus.example.retailv2;
 import byteplus.example.common.Example;
 import byteplus.example.common.RequestHelper;
 import byteplus.example.common.StatusHelper;
-import byteplus.sdk.common.protocol.ByteplusCommon.Operation;
 import byteplus.sdk.core.BizException;
 import byteplus.sdk.core.Option;
 import byteplus.sdk.core.Region;
 import byteplus.sdk.retailv2.RetailClient;
 import byteplus.sdk.retailv2.RetailClientBuilder;
 import byteplus.sdk.retailv2.protocol.ByteplusRetailv2.*;
+import byteplus.sdk.common.protocol.ByteplusCommon.DoneResponse;
 import byteplus.sdk.retailv2.protocol.ByteplusRetailv2.AckServerImpressionsRequest.AlteredProduct;
 import byteplus.sdk.retailv2.protocol.ByteplusRetailv2.PredictResult.ResponseProduct;
 import com.google.protobuf.Any;
@@ -19,6 +19,7 @@ import lombok.extern.slf4j.Slf4j;
 import org.jetbrains.annotations.NotNull;
 
 import java.time.Duration;
+import java.time.LocalDate;
 import java.time.ZonedDateTime;
 import java.time.format.DateTimeFormatter;
 import java.util.*;
@@ -33,7 +34,11 @@ public class Main {
 
     private final static int DEFAULT_RETRY_TIMES = 2;
 
+    private final static String DEFAULT_DONE_TOPIC = "user";
+
     private final static Duration DEFAULT_WRITE_TIMEOUT = Duration.ofMillis(800);
+
+    private final static Duration DEFAULT_DONE_TIMEOUT = Duration.ofMillis(1000);
 
     private final static Duration DEFAULT_PREDICT_TIMEOUT = Duration.ofMillis(800);
 
@@ -76,6 +81,9 @@ public class Main {
         writeUserEventsExample();
         // Write real-time user event data concurrently
         concurrentWriteUserEventsExample();
+
+        // done
+        doneExample();
 
         // Get recommendation results
         recommendExample();
@@ -190,6 +198,27 @@ public class Main {
                 .addAllUserEvents(userEvents)
                 .putExtra("extra_info", "info")
                 .build();
+    }
+
+    // 离线天级数据上传完成后Done接口example
+    private static void doneExample() {
+        LocalDate date = LocalDate.of(2021, 12, 10);
+        List<LocalDate> dateList = Collections.singletonList(date);
+        Option[] opts = defaultOptions(DEFAULT_DONE_TIMEOUT);
+        RequestHelper.Callable<DoneResponse, List<LocalDate>> call
+                = (req, optList) -> client.done(req, DEFAULT_DONE_TOPIC, optList);
+        DoneResponse response;
+        try {
+            response = requestHelper.doWithRetry(call, dateList, opts, DEFAULT_RETRY_TIMES);
+        } catch (BizException e) {
+            log.error("[Done] occur error, msg:{}", e.getMessage());
+            return;
+        }
+        if (StatusHelper.isSuccess(response.getStatus())) {
+            log.info("[Done] success");
+            return;
+        }
+        log.error("[Done] find failure info, rsp:{}", response);
     }
 
     public static void recommendExample() {

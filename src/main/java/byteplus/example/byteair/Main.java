@@ -5,6 +5,7 @@ import byteplus.example.common.RequestHelper;
 import byteplus.example.common.RequestHelper.Callable;
 import byteplus.example.common.StatusHelper;
 import byteplus.sdk.common.protocol.ByteplusCommon.OperationResponse;
+import byteplus.sdk.common.protocol.ByteplusCommon.DoneResponse;
 import byteplus.sdk.core.BizException;
 import byteplus.sdk.core.Option;
 import byteplus.sdk.core.Region;

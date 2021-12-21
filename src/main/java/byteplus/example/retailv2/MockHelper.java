@@ -1,6 +1,5 @@
 package byteplus.example.retailv2;
 
-
 import byteplus.sdk.retailv2.protocol.ByteplusRetailv2.Product;
 import byteplus.sdk.retailv2.protocol.ByteplusRetailv2.User;
 import byteplus.sdk.retailv2.protocol.ByteplusRetailv2.UserEvent;

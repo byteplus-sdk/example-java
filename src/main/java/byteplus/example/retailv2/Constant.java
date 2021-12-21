@@ -4,7 +4,7 @@ public final class Constant {
     // A unique token assigned by bytedance, which is used to
     // generate an authenticated signature when building a request.
     // It is sometimes called "secret".
-    public final static String TOKEN = "ZWYxMGY5OTRmMGQ0YjgxMjgyM2JhMGNiOGM4MmMxNjc";
+    public final static String TOKEN = "xxxxxxxxxxxxxxxx";
 
     // A unique ID assigned by Bytedance, which is used to
     // generate an authenticated signature when building a request
