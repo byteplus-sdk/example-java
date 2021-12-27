@@ -42,7 +42,6 @@ public class Main {
                 .projectId(Constant.PROJECT_ID) // 必传，项目id
                 .tenantId(Constant.TENANT_ID) // 必传
                 .region(Region.AIR_CN) //必传，推荐平台国内版Region.AIR_CN，海外版填Region.AIR_SG
-                .schema("https")
                 .ak(AK)
                 .sk(SK)
                 .build();
