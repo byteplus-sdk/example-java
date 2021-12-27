@@ -4,6 +4,7 @@ import byteplus.example.common.RequestHelper;
 import byteplus.example.common.RequestHelper.Callable;
 import byteplus.example.common.StatusHelper;
 import byteplus.sdk.byteair.ByteairClient;
+import byteplus.sdk.common.protocol.ByteplusCommon.*;
 import byteplus.sdk.core.Option;
 import byteplus.sdk.byteair.protocol.ByteplusByteair.*;
 import lombok.extern.slf4j.Slf4j;

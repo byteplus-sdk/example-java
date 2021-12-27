@@ -4,6 +4,7 @@ import byteplus.example.common.Example;
 import byteplus.example.common.RequestHelper;
 import byteplus.example.common.RequestHelper.Callable;
 import byteplus.example.common.StatusHelper;
+import byteplus.sdk.common.protocol.ByteplusCommon.*;
 import byteplus.sdk.common.protocol.ByteplusCommon.Operation;
 import byteplus.sdk.common.protocol.ByteplusCommon.OperationResponse;
 import byteplus.sdk.core.BizException;
@@ -33,7 +34,6 @@ import java.util.UUID;
 
 import static byteplus.sdk.general.protocol.ByteplusGeneral.CallbackItem;
 import static byteplus.sdk.general.protocol.ByteplusGeneral.CallbackRequest;
-import static byteplus.sdk.general.protocol.ByteplusGeneral.DoneResponse;
 import static byteplus.sdk.general.protocol.ByteplusGeneral.PredictCandidateItem;
 import static byteplus.sdk.general.protocol.ByteplusGeneral.PredictContext;
 import static byteplus.sdk.general.protocol.ByteplusGeneral.PredictExtra;

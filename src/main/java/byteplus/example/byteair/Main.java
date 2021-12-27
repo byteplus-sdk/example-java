@@ -5,6 +5,7 @@ import byteplus.example.common.RequestHelper.Callable;
 import byteplus.example.common.StatusHelper;
 import byteplus.sdk.byteair.ByteairClient;
 import byteplus.sdk.byteair.ByteairClientBuilder;
+import byteplus.sdk.common.protocol.ByteplusCommon;
 import byteplus.sdk.core.BizException;
 import byteplus.sdk.core.Option;
 import byteplus.sdk.core.Region;
@@ -16,7 +17,7 @@ import java.time.Duration;
 import java.time.LocalDate;
 import java.util.*;
 
-import static byteplus.example.byteair.Constant.DEFAULT_PREDICT_SCENE;
+import static byteplus.example.byteair.Constant.*;
 
 @Slf4j
 public class Main {
@@ -30,8 +31,6 @@ public class Main {
 
     private final static Duration DEFAULT_WRITE_TIMEOUT = Duration.ofMillis(1000);
 
-    private final static Duration DEFAULT_IMPORT_TIMEOUT = Duration.ofMillis(800);
-
     private final static Duration DEFAULT_DONE_TIMEOUT = Duration.ofMillis(800);
 
     private final static Duration DEFAULT_PREDICT_TIMEOUT = Duration.ofMillis(800);
@@ -43,8 +42,9 @@ public class Main {
                 .projectId(Constant.PROJECT_ID) // 必传，项目id
                 .tenantId(Constant.TENANT_ID) // 必传
                 .region(Region.AIR_CN) //必传，推荐平台国内版Region.AIR_CN，海外版填Region.AIR_SG
-                .ak("AKLTNTUxNThkNmNmZTg0NDI4YzgxYzc1YzI5YmIxYjVjZjU")
-                .sk("WXpkak5HTTVPV1V3WVRFeU5EZzFZemcxWldaa05qZzFNelF4TVRZMk9URQ==")
+                .schema("https")
+                .ak(AK)
+                .sk(SK)
                 .build();
         requestHelper = new RequestHelper(client);
         concurrentHelper = new ConcurrentHelper(client); //用于多线程请求
@@ -115,7 +115,6 @@ public class Main {
 
     // Write请求参数说明，请根据说明修改
     private static Option[] writeOptions() {
-        // Map<String, String> customerHeaders = Collections.emptyMap();
         return new Option[]{
                 // 必选. Write接口只能用于实时数据传输，此处只能填"incremental_sync_streaming"
                 Option.withStage(Constant.STAGE_INCREMENTAL_SYNC_STREAMING),
@@ -123,13 +122,12 @@ public class Main {
                 Option.withRequestId(UUID.randomUUID().toString()),
                 // 可选，请求超时时间
                 Option.withTimeout(DEFAULT_WRITE_TIMEOUT),
-                // 可选. 添加自定义header.
-                // Option.withHeaders(customerHeaders),
                 // 可选. 服务端期望在一定时间内返回，避免客户端超时前响应无法返回。
                 // 此服务器超时应小于Write请求设置的总超时。
-                Option.withServerTimeout(DEFAULT_WRITE_TIMEOUT.minus(Duration.ofMillis(100))),
+                // Option.withServerTimeout(DEFAULT_WRITE_TIMEOUT.minus(Duration.ofMillis(100))),
         };
     }
+
 
     // 离线天级数据上传完成后Done接口example
     private static void doneExample() {
@@ -139,9 +137,9 @@ public class Main {
         // 与离线天级数据传输的topic保持一致
         String topic = Constant.TOPIC_USER;
         Option[] opts = doneOptions();
-        Callable<DoneResponse, List<LocalDate>> call
+        Callable<ByteplusCommon.DoneResponse, List<LocalDate>> call
                 = (req, optList) -> client.done(req, topic, optList);
-        DoneResponse response;
+        ByteplusCommon.DoneResponse response;
         try {
             response = requestHelper.doWithRetry(call, dateList, opts, DEFAULT_RETRY_TIMES);
         } catch (BizException e) {
@@ -168,7 +166,6 @@ public class Main {
 
     // Done请求参数说明，请根据说明修改
     private static Option[] doneOptions() {
-        // Map<String, String> customerHeaders = Collections.emptyMap();
         return new Option[]{
                 // 必选，与Import接口数据传输阶段保持一致，包括：
                 // 测试数据/预同步阶段（"pre_sync"）、历史数据同步（"history_sync"）和增量天级数据上传（"incremental_sync_daily"）
@@ -177,8 +174,6 @@ public class Main {
                 Option.withRequestId(UUID.randomUUID().toString()),
                 // 可选，请求超时时间
                 Option.withTimeout(DEFAULT_DONE_TIMEOUT),
-                // 可选，自定义header
-                // Option.withHeaders(customerHeaders)
         };
     }
 

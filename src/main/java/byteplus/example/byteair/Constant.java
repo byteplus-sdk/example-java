@@ -4,11 +4,14 @@ public final class Constant {
     /**
      * 租户相关信息
      */
-    //字节侧提供，用于签名
-    public final static String TOKEN = "xxxxx";
+    //火山引擎账号/子账号的AccessKey
+    public final static String AK = "xxxxxxxx";
+
+    //火山引擎账号/子账号的SecretKey
+    public final static String SK = "xxxxxxxx";
 
     //火山引擎申请的账号id/租户id(tenant_id)，如"2100021"
-    public final static String TENANT_ID = "xxxxxxx";
+    public final static String TENANT_ID = "xxxxxxxx";
 
     //个性化推荐服务新建的项目id(project_id)，如"1231314"
     public final static String PROJECT_ID = "xxxxxxxx";
