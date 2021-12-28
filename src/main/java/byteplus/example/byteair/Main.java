@@ -110,6 +110,9 @@ public class Main {
         Option[] opts = writeOptions();
         String topic = Constant.TOPIC_USER;
         concurrentHelper.submitWriteRequest(dataList, topic, opts);
+        // 阻塞等待所有的数据上传任务执行完毕，必须执行完毕后才能调用done接口；
+        // 防止出现异步提交完直接调用done接口，导致数据提交失败
+        concurrentHelper.waitAndShutdown();
     }
 
     // Write请求参数说明，请根据说明修改
@@ -119,6 +122,9 @@ public class Main {
                 Option.withStage(Constant.STAGE_INCREMENTAL_SYNC_STREAMING),
                 // 必传，要求每次请求的Request-Id不重复，若未传，sdk会默认为每个请求添加
                 Option.withRequestId(UUID.randomUUID().toString()),
+                // 离线数据同步时【必传】，数据产生日期，实际传输时需修改为实际日期
+                // 实时数据同步时【不传】此Option
+                Option.withDataDate(LocalDate.of(2021, 11, 1)),
                 // 可选，请求超时时间
                 Option.withTimeout(DEFAULT_WRITE_TIMEOUT),
                 // 可选. 服务端期望在一定时间内返回，避免客户端超时前响应无法返回。
@@ -161,6 +167,8 @@ public class Main {
         String topic = Constant.TOPIC_USER;
         Option[] opts = doneOptions();
         concurrentHelper.submitDoneRequest(dateList, topic, opts);
+        // wait until all tasks finished
+        concurrentHelper.waitAndShutdown();
     }
 
     // Done请求参数说明，请根据说明修改
