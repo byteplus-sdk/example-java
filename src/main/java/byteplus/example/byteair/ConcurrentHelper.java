@@ -68,20 +68,6 @@ public class ConcurrentHelper {
         executor.submit(() -> doCallback(request, opts));
     }
 
-    // Blocking and waiting for all threads to finish.
-    public void waitAndShutdown() {
-        // shutdown not allow more submit
-        executor.shutdown();
-        while (!executor.isTerminated()) {
-            try {
-                Thread.sleep(WAIT_INTERVAL_MS);
-            } catch (InterruptedException e) {
-                e.printStackTrace();
-            }
-        }
-    }
-
-
     private void doWrite(List<Map<String, Object>> dataList, String topic, Option... opts) {
         WriteResponse response;
         Callable<WriteResponse, List<Map<String, Object>>> call

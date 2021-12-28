@@ -56,13 +56,9 @@ public class Main {
     public static void main(String[] args) {
         // 实时数据上传
         writeDataExample();
-        // 并发实时数据上传
-        concurrentWriteDataExample();
 
         // 标识天级离线数据上传完成
         doneExample();
-        // 并发标识天级离线数据上传完成
-        concurrentDoneExample();
 
         // 请求推荐服务获取推荐结果
         recommendExample();
@@ -102,17 +98,6 @@ public class Main {
         // 出现错误、异常时请记录好日志，方便自行排查问题
         log.error("write data find failure info, msg:{} errItems:{}",
                 response.getStatus(), response.getErrorsList());
-    }
-
-    // 增量实时数据并发/异步上传example
-    public static void concurrentWriteDataExample() {
-        List<Map<String, Object>> dataList = MockHelper.mockDataList(2);
-        Option[] opts = writeOptions();
-        String topic = Constant.TOPIC_USER;
-        concurrentHelper.submitWriteRequest(dataList, topic, opts);
-        // 阻塞等待所有的数据上传任务执行完毕，必须执行完毕后才能调用done接口；
-        // 防止出现异步提交完直接调用done接口，导致数据提交失败
-        concurrentHelper.waitAndShutdown();
     }
 
     // Write请求参数说明，请根据说明修改
@@ -156,19 +141,6 @@ public class Main {
             return;
         }
         log.error("[Done] find failure info, rsp:{}", response);
-    }
-
-    // 离线天级数据上传完成后异步Done接口example，done接口一般无需异步
-    private static void concurrentDoneExample() {
-        LocalDate date = LocalDate.of(2021, 6, 10);
-        List<LocalDate> dateList = Collections.singletonList(date);
-        // The `topic` is some enums provided by bytedance,
-        // who according to tenant's situation
-        String topic = Constant.TOPIC_USER;
-        Option[] opts = doneOptions();
-        concurrentHelper.submitDoneRequest(dateList, topic, opts);
-        // wait until all tasks finished
-        concurrentHelper.waitAndShutdown();
     }
 
     // Done请求参数说明，请根据说明修改
