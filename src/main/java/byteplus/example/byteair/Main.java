@@ -64,7 +64,7 @@ public class Main {
         recommendExample();
 
         try {
-            // 等待异步任务Import完成
+            // 等待异步任务完成
             Thread.sleep(5000);
         } catch (InterruptedException ignored) {
 

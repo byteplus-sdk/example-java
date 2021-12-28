@@ -30,8 +30,6 @@ public class ConcurrentHelper {
 
     private final static int RETRY_TIMES = 2;
 
-    private final static long WAIT_INTERVAL_MS = 20;
-
     private final ExecutorService executor = new ThreadPoolExecutor(
             CORE_POOL_SIZE,
             MAX_POOL_SIZE,
