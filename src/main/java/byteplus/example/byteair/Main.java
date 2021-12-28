@@ -110,19 +110,15 @@ public class Main {
     public static void main(String[] args) {
         // 实时数据上传
         writeDataExample();
-        // 并发实时数据上传
-        concurrentWriteDataExample();
 
         // 标识天级离线数据上传完成
         doneExample();
-        // 并发标识天级离线数据上传完成
-        concurrentDoneExample();
 
         // 请求推荐服务获取推荐结果
         recommendExample();
 
         try {
-            // 等待异步任务Import完成
+            // 等待异步任务完成
             Thread.sleep(5000);
         } catch (InterruptedException ignored) {
 
@@ -158,14 +154,6 @@ public class Main {
                 response.getStatus(), response.getErrorsList());
     }
 
-    // 增量实时数据并发/异步上传example
-    public static void concurrentWriteDataExample() {
-        List<Map<String, Object>> dataList = MockHelper.mockDataList(2);
-        Option[] opts = writeOptions();
-        String topic = TOPIC_USER;
-        concurrentHelper.submitWriteRequest(dataList, topic, opts);
-    }
-
     // Write请求参数说明，请根据说明修改
     private static Option[] writeOptions() {
         return new Option[]{
@@ -173,6 +161,9 @@ public class Main {
                 Option.withStage(STAGE_INCREMENTAL_SYNC_STREAMING),
                 // 必传，要求每次请求的Request-Id不重复，若未传，sdk会默认为每个请求添加
                 Option.withRequestId(UUID.randomUUID().toString()),
+                // 离线数据同步时【必传】，数据产生日期，实际传输时需修改为实际日期
+                // 实时数据同步时【不传】此Option
+                Option.withDataDate(LocalDate.of(2021, 11, 1)),
                 // 可选，请求超时时间
                 Option.withTimeout(DEFAULT_WRITE_TIMEOUT),
                 // 可选. 服务端期望在一定时间内返回，避免客户端超时前响应无法返回。
@@ -204,17 +195,6 @@ public class Main {
             return;
         }
         log.error("[Done] find failure info, rsp:{}", response);
-    }
-
-    // 离线天级数据上传完成后异步Done接口example，done接口一般无需异步
-    private static void concurrentDoneExample() {
-        LocalDate date = LocalDate.of(2021, 6, 10);
-        List<LocalDate> dateList = Collections.singletonList(date);
-        // The `topic` is some enums provided by bytedance,
-        // who according to tenant's situation
-        String topic = TOPIC_USER;
-        Option[] opts = doneOptions();
-        concurrentHelper.submitDoneRequest(dateList, topic, opts);
     }
 
     // Done请求参数说明，请根据说明修改

@@ -27,7 +27,7 @@ public class ConcurrentHelper {
 
     private final static int MAX_POOL_SIZE = 7;
 
-    private final static int KEEP_ALICE_MINUTES = 5;
+    private final static int KEEP_ALIVE_MINUTES = 5;
 
     private final static int MAX_BLOCK_TASK_COUNT = 20;
 
@@ -36,7 +36,7 @@ public class ConcurrentHelper {
     private final ExecutorService executor = new ThreadPoolExecutor(
             CORE_POOL_SIZE,
             MAX_POOL_SIZE,
-            KEEP_ALICE_MINUTES, TimeUnit.MINUTES,
+            KEEP_ALIVE_MINUTES, TimeUnit.MINUTES,
             new LinkedBlockingQueue<>(MAX_BLOCK_TASK_COUNT),
             new ThreadPoolExecutor.CallerRunsPolicy()
     );
@@ -68,7 +68,6 @@ public class ConcurrentHelper {
     public void submitCallbackRequest(CallbackRequest request, Option... opts) {
         executor.submit(() -> doCallback(request, opts));
     }
-
 
     private void doWrite(List<Map<String, Object>> dataList, String topic, Option... opts) {
         WriteResponse response;
