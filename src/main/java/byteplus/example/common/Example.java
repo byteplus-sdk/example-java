@@ -9,6 +9,7 @@ import byteplus.sdk.common.protocol.ByteplusCommon.OperationResponse;
 import byteplus.sdk.core.BizException;
 import byteplus.sdk.core.NetException;
 import byteplus.sdk.core.Option;
+import byteplus.sdk.retailv2.protocol.ByteplusRetailv2;
 import lombok.extern.slf4j.Slf4j;
 
 import java.time.Duration;
