@@ -1,6 +1,5 @@
 package byteplus.example.retailv2;
 
-import byteplus.example.common.Example;
 import byteplus.example.common.RequestHelper;
 import byteplus.example.common.StatusHelper;
 import byteplus.sdk.core.BizException;
@@ -8,20 +7,27 @@ import byteplus.sdk.core.Option;
 import byteplus.sdk.core.Region;
 import byteplus.sdk.retailv2.RetailClient;
 import byteplus.sdk.retailv2.RetailClientBuilder;
-import byteplus.sdk.retailv2.protocol.ByteplusRetailv2.*;
 import byteplus.sdk.common.protocol.ByteplusCommon.DoneResponse;
+import byteplus.sdk.retailv2.protocol.ByteplusRetailv2.WriteUsersRequest;
+import byteplus.sdk.retailv2.protocol.ByteplusRetailv2.WriteProductsRequest;
+import byteplus.sdk.retailv2.protocol.ByteplusRetailv2.WriteUserEventsRequest;
+import byteplus.sdk.retailv2.protocol.ByteplusRetailv2.WriteUsersResponse;
+import byteplus.sdk.retailv2.protocol.ByteplusRetailv2.WriteProductsResponse;
+import byteplus.sdk.retailv2.protocol.ByteplusRetailv2.WriteUserEventsResponse;
+import byteplus.sdk.retailv2.protocol.ByteplusRetailv2.User;
+import byteplus.sdk.retailv2.protocol.ByteplusRetailv2.Product;
+import byteplus.sdk.retailv2.protocol.ByteplusRetailv2.UserEvent;
+import byteplus.sdk.retailv2.protocol.ByteplusRetailv2.PredictRequest;
+import byteplus.sdk.retailv2.protocol.ByteplusRetailv2.PredictResponse;
+import byteplus.sdk.retailv2.protocol.ByteplusRetailv2.AckServerImpressionsRequest;
+import byteplus.sdk.retailv2.protocol.ByteplusRetailv2.PredictResult;
 import byteplus.sdk.retailv2.protocol.ByteplusRetailv2.AckServerImpressionsRequest.AlteredProduct;
 import byteplus.sdk.retailv2.protocol.ByteplusRetailv2.PredictResult.ResponseProduct;
-import com.google.protobuf.Any;
-import com.google.protobuf.InvalidProtocolBufferException;
-import com.google.protobuf.Parser;
 import lombok.extern.slf4j.Slf4j;
 import org.jetbrains.annotations.NotNull;
 
 import java.time.Duration;
 import java.time.LocalDate;
-import java.time.ZonedDateTime;
-import java.time.format.DateTimeFormatter;
 import java.util.*;
 
 @Slf4j
@@ -44,12 +50,26 @@ public class Main {
 
     private final static Duration DEFAULT_ACK_IMPRESSIONS_TIMEOUT = Duration.ofMillis(800);
 
+    // A unique token assigned by bytedance, which is used to
+    // generate an authenticated signature when building a request.
+    // It is sometimes called "secret".
+    public final static String TOKEN = "xxxxxxxxxxxxxxxx";
+
+    // A unique ID assigned by Bytedance, which is used to
+    // generate an authenticated signature when building a request
+    // It is sometimes called "appkey".
+    public final static String TENANT_ID = "xxxxxxxxxxxx";
+
+    // A unique identity assigned by Bytedance, which is need to fill in URL.
+    // It is sometimes called "company".
+    public final static String TENANT = "retail_demo";
+
 
     static {
         client = new RetailClientBuilder()
-                .tenant(Constant.TENANT) // Required
-                .tenantId(Constant.TENANT_ID) // Required
-                .token(Constant.TOKEN) // Required
+                .tenant(TENANT) // Required
+                .tenantId(TENANT_ID) // Required
+                .token(TOKEN) // Required
                 .region(Region.SG) //Required, select enum value according to your region
 //                .schema("https") //Optional
 //                .headers(Collections.singletonMap("Customer-Header", "value")) // Optional
@@ -63,8 +83,6 @@ public class Main {
      * The data in the "demo" account is only used for testing
      * and communication between customers.
      * Please don't send your private data by "demo" account.
-     * If you need to send your private data,
-     * you can change account to yours here: {@link Constant}
      */
     public static void main(String[] args) {
         // Write real-time user data

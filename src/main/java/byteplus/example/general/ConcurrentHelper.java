@@ -3,12 +3,17 @@ package byteplus.example.general;
 import byteplus.example.common.RequestHelper;
 import byteplus.example.common.RequestHelper.Callable;
 import byteplus.example.common.StatusHelper;
-import byteplus.sdk.common.protocol.ByteplusCommon.*;
+import byteplus.sdk.common.protocol.ByteplusCommon.OperationResponse;
+import byteplus.sdk.common.protocol.ByteplusCommon.DoneResponse;
 import byteplus.sdk.core.Option;
 import byteplus.sdk.general.GeneralClient;
-import byteplus.sdk.general.protocol.ByteplusGeneral.*;
-import com.google.protobuf.Parser;
 import lombok.extern.slf4j.Slf4j;
+import com.google.protobuf.Parser;
+
+import byteplus.sdk.general.protocol.ByteplusGeneral.ImportResponse;
+import byteplus.sdk.general.protocol.ByteplusGeneral.WriteResponse;
+import byteplus.sdk.general.protocol.ByteplusGeneral.CallbackRequest;
+import byteplus.sdk.general.protocol.ByteplusGeneral.CallbackResponse;
 
 import java.time.LocalDate;
 import java.util.List;

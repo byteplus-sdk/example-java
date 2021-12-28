@@ -4,8 +4,14 @@ import byteplus.example.common.RequestHelper;
 import byteplus.example.common.StatusHelper;
 import byteplus.sdk.core.Option;
 import byteplus.sdk.retailv2.RetailClient;
-import byteplus.sdk.retailv2.protocol.ByteplusRetailv2.*;
-import com.google.protobuf.Parser;
+import byteplus.sdk.retailv2.protocol.ByteplusRetailv2.WriteUsersRequest;
+import byteplus.sdk.retailv2.protocol.ByteplusRetailv2.WriteProductsRequest;
+import byteplus.sdk.retailv2.protocol.ByteplusRetailv2.WriteUserEventsRequest;
+import byteplus.sdk.retailv2.protocol.ByteplusRetailv2.WriteUsersResponse;
+import byteplus.sdk.retailv2.protocol.ByteplusRetailv2.WriteProductsResponse;
+import byteplus.sdk.retailv2.protocol.ByteplusRetailv2.WriteUserEventsResponse;
+import byteplus.sdk.retailv2.protocol.ByteplusRetailv2.AckServerImpressionsRequest;
+import byteplus.sdk.retailv2.protocol.ByteplusRetailv2.AckServerImpressionsResponse;
 import lombok.extern.slf4j.Slf4j;
 
 import java.util.concurrent.ExecutorService;
