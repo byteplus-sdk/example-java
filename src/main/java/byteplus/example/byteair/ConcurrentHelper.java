@@ -30,6 +30,8 @@ public class ConcurrentHelper {
 
     private final static int RETRY_TIMES = 2;
 
+    private final static long WAIT_INTERVAL_MS = 20;
+
     private final ExecutorService executor = new ThreadPoolExecutor(
             CORE_POOL_SIZE,
             MAX_POOL_SIZE,
@@ -70,9 +72,11 @@ public class ConcurrentHelper {
     public void waitAndShutdown() {
         // shutdown not allow more submit
         executor.shutdown();
-        for(;;) {
-            if (executor.isTerminated()) {
-                return;
+        while (!executor.isTerminated()) {
+            try {
+                Thread.sleep(WAIT_INTERVAL_MS);
+            } catch (InterruptedException e) {
+                e.printStackTrace();
             }
         }
     }
