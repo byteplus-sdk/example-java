@@ -64,10 +64,6 @@ public class ConcurrentHelper {
         executor.submit(() -> doWrite(dataList, topic, opts));
     }
 
-    public void submitImportRequest(List<Map<String, Object>> dataList, String topic, Option... opts) {
-        executor.submit(() -> doImport(dataList, topic, opts));
-    }
-
     public void submitDoneRequest(List<LocalDate> dateList, String topic, Option... opts) {
         executor.submit(() -> doDone(dateList, topic, opts));
     }
@@ -93,25 +89,6 @@ public class ConcurrentHelper {
         }
         log.error("[AsyncWrite] find failure info, msg:{} errItems:{}",
                 response.getStatus(), response.getErrorsList());
-    }
-
-    private void doImport(List<Map<String, Object>> dataList, String topic, Option... opts) {
-        ImportResponse response;
-        Parser<ImportResponse> rspParser = ImportResponse.parser();
-        Callable<OperationResponse, List<Map<String, Object>>> call
-                = (req, optList) -> client.importData(req, topic, optList);
-        try {
-            response = requestHelper.doImport(call, dataList, opts, rspParser, RETRY_TIMES);
-        } catch (Throwable e) {
-            log.error("[AsyncImport] occur error, msg:{}", e.getMessage());
-            return;
-        }
-        if (StatusHelper.isSuccess(response.getStatus())) {
-            log.info("[AsyncImport] success");
-            return;
-        }
-        log.error("[AsyncImport] find failure info, msg:{} errSampleItems:{}",
-                response.getStatus(), response.getErrorSamplesList());
     }
 
     private void doDone(List<LocalDate> dateList, String topic, Option... opts) {
