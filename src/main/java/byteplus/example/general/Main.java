@@ -109,7 +109,7 @@ public class Main {
         Option[] opts = writeOptions();
         // The `topic` is some enums provided by bytedance,
         // who according to tenant's situation
-        String topic = "user_event";
+        String topic = "user";
         WriteResponse response;
         try {
             Callable<WriteResponse, List<Map<String, Object>>> call
@@ -142,7 +142,7 @@ public class Main {
         List<LocalDate> dateList = Collections.singletonList(date);
         // The `topic` is some enums provided by bytedance,
         // who according to tenant's situation
-        String topic = "user_event";
+        String topic = "user";
         Option[] opts = defaultOptions(DEFAULT_DONE_TIMEOUT);
         Callable<DoneResponse, List<LocalDate>> call
                 = (req, optList) -> client.done(req, topic, optList);
