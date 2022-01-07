@@ -1,19 +1,15 @@
-package byteplus.example.general;
+package byteplus.example.LocalTest.byteair;
 
 import byteplus.example.common.RequestHelper;
 import byteplus.example.common.RequestHelper.Callable;
 import byteplus.example.common.StatusHelper;
-import byteplus.sdk.common.protocol.ByteplusCommon.OperationResponse;
+import byteplus.sdk.byteair.ByteairClient;
+import byteplus.sdk.byteair.protocol.ByteplusByteair.CallbackRequest;
+import byteplus.sdk.byteair.protocol.ByteplusByteair.CallbackResponse;
+import byteplus.sdk.byteair.protocol.ByteplusByteair.WriteResponse;
 import byteplus.sdk.common.protocol.ByteplusCommon.DoneResponse;
 import byteplus.sdk.core.Option;
-import byteplus.sdk.general.GeneralClient;
 import lombok.extern.slf4j.Slf4j;
-import com.google.protobuf.Parser;
-
-import byteplus.sdk.general.protocol.ByteplusGeneral.ImportResponse;
-import byteplus.sdk.general.protocol.ByteplusGeneral.WriteResponse;
-import byteplus.sdk.general.protocol.ByteplusGeneral.CallbackRequest;
-import byteplus.sdk.general.protocol.ByteplusGeneral.CallbackResponse;
 
 import java.time.LocalDate;
 import java.util.List;
@@ -30,25 +26,27 @@ public class ConcurrentHelper {
 
     private final static int MAX_POOL_SIZE = 7;
 
-    private final static int KEEP_ALICE_MINUTES = 5;
+    private final static int KEEP_ALIVE_MINUTES = 5;
 
     private final static int MAX_BLOCK_TASK_COUNT = 20;
 
     private final static int RETRY_TIMES = 2;
 
+    private final static long AWAIT_TIME_FOR_SHUTDOWN_SEC = 300; //default to 300s
+
     private final ExecutorService executor = new ThreadPoolExecutor(
             CORE_POOL_SIZE,
             MAX_POOL_SIZE,
-            KEEP_ALICE_MINUTES, TimeUnit.MINUTES,
+            KEEP_ALIVE_MINUTES, TimeUnit.MINUTES,
             new LinkedBlockingQueue<>(MAX_BLOCK_TASK_COUNT),
             new ThreadPoolExecutor.CallerRunsPolicy()
     );
 
-    private final GeneralClient client;
+    private final ByteairClient client;
 
     private final RequestHelper requestHelper;
 
-    public ConcurrentHelper(GeneralClient client) {
+    public ConcurrentHelper(ByteairClient client) {
         this.client = client;
         this.requestHelper = new RequestHelper(client);
     }
@@ -72,6 +70,35 @@ public class ConcurrentHelper {
         executor.submit(() -> doCallback(request, opts));
     }
 
+//    // Blocking and waiting for all threads to finish or time out.
+//    public void waitAndShutdown() {
+//        // shutdown not allow more submit
+//        executor.shutdown();
+//        // await for all task finish execution
+//        try {
+//            if (!executor.awaitTermination(AWAIT_TIME_FOR_SHUTDOWN_SEC, TimeUnit.SECONDS)) {
+//                List<Runnable> discardTask = executor.shutdownNow();
+//                if (!discardTask.isEmpty()) {
+//                    log.error("some tasks not finished after waiting for {}s, taskNum:{}",
+//                            AWAIT_TIME_FOR_SHUTDOWN_SEC, discardTask.size());
+//                }
+//            }
+//        } catch (InterruptedException e) {
+//            log.error("waitAndShutdown exception:{}", e.getMessage());
+//        }
+//    }
+
+    // Blocking and waiting for all threads to finish or time out.
+    public void waitAndShutdown() {
+        // shutdown not allow more submit
+        executor.shutdown();
+        for(;;) {
+            if (executor.isTerminated()) {
+                return;
+            }
+        }
+    }
+
 
     private void doWrite(List<Map<String, Object>> dataList, String topic, Option... opts) {
         WriteResponse response;
@@ -90,6 +117,7 @@ public class ConcurrentHelper {
         log.error("[AsyncWrite] find failure info, msg:{} errItems:{}",
                 response.getStatus(), response.getErrorsList());
     }
+
 
     private void doDone(List<LocalDate> dateList, String topic, Option... opts) {
         DoneResponse response;
