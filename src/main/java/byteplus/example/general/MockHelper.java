@@ -1,6 +1,8 @@
 package byteplus.example.general;
 
 
+import com.alibaba.fastjson.JSON;
+
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
@@ -18,6 +20,12 @@ public class MockHelper {
     }
 
     public static Map<String, Object> mockData() {
+        // Fields not included in the standard schema can be transmitted through the 'extra_info' field,
+        // and the extra_info value format should be json string
+        Map<String, Object> extraInfoMap = new HashMap<>();
+        extraInfoMap.put("session_id", "sess_89j9ifuqrbplk0rti2va2k1ha0");
+        extraInfoMap.put("store_num", 12);
+        extraInfoMap.put("user_tags", new String[]{"1", "2", "3", "xxx"});
         Map<String, Object> result = new HashMap<>();
         result.put("user_id", "1457789");
         result.put("event_type", "purchase");
@@ -41,7 +49,7 @@ public class MockHelper {
         result.put("rec_info", "CiRiMjYyYjM1YS0xOTk1LTQ5YmMtOGNkNS1mZTVmYTczN2FkNDASJAobcmVjZW50X2hvdF9jbGlja3NfcmV0cmlldmVyFQAAAAAYDxoKCgNjdHIdog58PBoKCgNjdnIdANK2OCIHMjcyNTgwMg==");
         result.put("traffic_source", "self");
         result.put("purchase_count", 20);
-        result.put("extra", "{\"session_id\":\"sess_89j9ifuqrbplk0rti2va2k1ha0\",\"request_id\":\"860ae3f6-7e4d-43a9-8699-114cbd72c287\"}");
+        result.put("extra_info", JSON.toJSONString(extraInfoMap));
         return result;
     }
 }

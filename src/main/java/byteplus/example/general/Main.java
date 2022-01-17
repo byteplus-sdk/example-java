@@ -3,7 +3,6 @@ package byteplus.example.general;
 import byteplus.example.common.RequestHelper;
 import byteplus.example.common.RequestHelper.Callable;
 import byteplus.example.common.StatusHelper;
-import byteplus.sdk.byteair.protocol.ByteplusByteair;
 import byteplus.sdk.core.BizException;
 import byteplus.sdk.core.NetException;
 import byteplus.sdk.core.Option;
