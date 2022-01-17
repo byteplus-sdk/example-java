@@ -3,6 +3,7 @@ package byteplus.example.general;
 import byteplus.example.common.RequestHelper;
 import byteplus.example.common.RequestHelper.Callable;
 import byteplus.example.common.StatusHelper;
+import byteplus.sdk.byteair.protocol.ByteplusByteair;
 import byteplus.sdk.core.BizException;
 import byteplus.sdk.core.NetException;
 import byteplus.sdk.core.Option;
@@ -217,7 +218,7 @@ public class Main {
     // Report the recommendation request result (actual exposure data) through the callback interface
     public static void callbackExample(String scene, ByteplusGeneral.PredictRequest predictRequest,
                                        ByteplusGeneral.PredictResponse predictResponse) {
-        List<ByteplusGeneral.CallbackItem> callbackItems = conv2CallbackItem(predictResponse.getValue().getItemsList());
+        List<ByteplusGeneral.CallbackItem> callbackItems = doSomethingWithPredictResult(predictResponse.getValue());
         ByteplusGeneral.CallbackRequest callbackRequest = ByteplusGeneral.CallbackRequest.newBuilder()
                 .setPredictRequestId(predictResponse.getRequestId())
                 // required, should be consistent with the uid passed in the recommendation request
@@ -238,7 +239,15 @@ public class Main {
         }
     }
 
-    private static List<ByteplusGeneral.CallbackItem> conv2CallbackItem(List<ByteplusGeneral.PredictResultItem> resultItems) {
+    private static List<ByteplusGeneral.CallbackItem> doSomethingWithPredictResult(ByteplusGeneral.PredictResult predictResult) {
+        // You can handle recommend results here,
+        // such as filter, insert other items, sort again, etc.
+        // The list of goods finally displayed to user and the filtered goods
+        // should be sent back to bytedance for deduplication
+        return conv2CallbackItems(predictResult.getItemsList());
+    }
+
+    private static List<ByteplusGeneral.CallbackItem> conv2CallbackItems(List<ByteplusGeneral.PredictResultItem> resultItems) {
         if (Objects.isNull(resultItems) || resultItems.isEmpty()) {
             return Collections.emptyList();
         }
