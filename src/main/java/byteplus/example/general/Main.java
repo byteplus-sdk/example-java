@@ -233,9 +233,14 @@ public class Main {
             callbackResponse = client.callback(callbackRequest, opts);
         } catch (NetException | BizException e) {
             e.printStackTrace();
-        } finally {
-            log.info("callback rsp info: {} \n", callbackResponse);
+            return;
         }
+        if (Objects.nonNull(callbackResponse) &&
+                StatusHelper.isSuccess(callbackResponse.getCode())) {
+            log.info("[Callback] success");
+            return;
+        }
+        log.error("[Callback] fail, rsp:\n{}", callbackResponse);
     }
 
     private static List<ByteplusGeneral.CallbackItem> doSomethingWithPredictResult(ByteplusGeneral.PredictResult predictResult) {
