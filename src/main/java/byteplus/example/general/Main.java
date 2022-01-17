@@ -131,6 +131,10 @@ public class Main {
         return new Option[]{
                 Option.withRequestId(UUID.randomUUID().toString()),
                 Option.withTimeout(DEFAULT_WRITE_TIMEOUT),
+                // The date of uploaded data
+                // Incremental data uploading: required.
+                // Historical data and real-time data uploading: not required.
+                Option.withDataDate(LocalDate.of(2021, 8, 27))
                 // The server is expected to return within a certain period，
                 // to prevent can't return before client is timeout
                 // Option.withServerTimeout(DEFAULT_WRITE_TIMEOUT.minus(Duration.ofMillis(100)))
@@ -179,7 +183,7 @@ public class Main {
         log.info("predict success");
         // The items, which is eventually shown to user,
         // should send back to Bytedance for deduplication
-        callbackExample(scene, predictResponse);
+        // callbackExample(scene, predictRequest, predictResponse);
     }
 
     private static PredictRequest buildPredictRequest() {
@@ -211,12 +215,13 @@ public class Main {
     }
 
     // Report the recommendation request result (actual exposure data) through the callback interface
-    public static void callbackExample(String scene, ByteplusGeneral.PredictResponse predictResponse) {
+    public static void callbackExample(String scene, ByteplusGeneral.PredictRequest predictRequest,
+                                       ByteplusGeneral.PredictResponse predictResponse) {
         List<ByteplusGeneral.CallbackItem> callbackItems = conv2CallbackItem(predictResponse.getValue().getItemsList());
         ByteplusGeneral.CallbackRequest callbackRequest = ByteplusGeneral.CallbackRequest.newBuilder()
                 .setPredictRequestId(predictResponse.getRequestId())
                 // required, should be consistent with the uid passed in the recommendation request
-                .setUid("12312")
+                .setUid(predictRequest.getUser().getUid())
                 // required，should be consistent with `scene` used in the recommendation request
                 .setScene(scene)
                 .addAllItems(callbackItems)
