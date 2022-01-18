@@ -131,6 +131,10 @@ public class Main {
         return new Option[]{
                 Option.withRequestId(UUID.randomUUID().toString()),
                 Option.withTimeout(DEFAULT_WRITE_TIMEOUT),
+                // The date of uploaded data
+                // Incremental data uploading: required.
+                // Historical data and real-time data uploading: not required.
+                Option.withDataDate(LocalDate.of(2021, 8, 27))
                 // The server is expected to return within a certain period，
                 // to prevent can't return before client is timeout
                 // Option.withServerTimeout(DEFAULT_WRITE_TIMEOUT.minus(Duration.ofMillis(100)))
@@ -179,7 +183,7 @@ public class Main {
         log.info("predict success");
         // The items, which is eventually shown to user,
         // should send back to Bytedance for deduplication
-        callbackExample(scene, predictResponse);
+        // callbackExample(scene, predictRequest, predictResponse);
     }
 
     private static PredictRequest buildPredictRequest() {
@@ -211,12 +215,13 @@ public class Main {
     }
 
     // Report the recommendation request result (actual exposure data) through the callback interface
-    public static void callbackExample(String scene, ByteplusGeneral.PredictResponse predictResponse) {
-        List<ByteplusGeneral.CallbackItem> callbackItems = conv2CallbackItem(predictResponse.getValue().getItemsList());
+    public static void callbackExample(String scene, ByteplusGeneral.PredictRequest predictRequest,
+                                       ByteplusGeneral.PredictResponse predictResponse) {
+        List<ByteplusGeneral.CallbackItem> callbackItems = doSomethingWithPredictResult(predictResponse.getValue());
         ByteplusGeneral.CallbackRequest callbackRequest = ByteplusGeneral.CallbackRequest.newBuilder()
                 .setPredictRequestId(predictResponse.getRequestId())
                 // required, should be consistent with the uid passed in the recommendation request
-                .setUid("12312")
+                .setUid(predictRequest.getUser().getUid())
                 // required，should be consistent with `scene` used in the recommendation request
                 .setScene(scene)
                 .addAllItems(callbackItems)
@@ -228,12 +233,25 @@ public class Main {
             callbackResponse = client.callback(callbackRequest, opts);
         } catch (NetException | BizException e) {
             e.printStackTrace();
-        } finally {
-            log.info("callback rsp info: {} \n", callbackResponse);
+            return;
         }
+        if (Objects.nonNull(callbackResponse) &&
+                StatusHelper.isSuccess(callbackResponse.getCode())) {
+            log.info("[Callback] success");
+            return;
+        }
+        log.error("[Callback] fail, rsp:\n{}", callbackResponse);
     }
 
-    private static List<ByteplusGeneral.CallbackItem> conv2CallbackItem(List<ByteplusGeneral.PredictResultItem> resultItems) {
+    private static List<ByteplusGeneral.CallbackItem> doSomethingWithPredictResult(ByteplusGeneral.PredictResult predictResult) {
+        // You can handle recommend results here,
+        // such as filter, insert other items, sort again, etc.
+        // The list of goods finally displayed to user and the filtered goods
+        // should be sent back to bytedance for deduplication
+        return conv2CallbackItems(predictResult.getItemsList());
+    }
+
+    private static List<ByteplusGeneral.CallbackItem> conv2CallbackItems(List<ByteplusGeneral.PredictResultItem> resultItems) {
         if (Objects.isNull(resultItems) || resultItems.isEmpty()) {
             return Collections.emptyList();
         }
