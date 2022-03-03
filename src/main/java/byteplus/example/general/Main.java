@@ -225,6 +225,7 @@ public class Main {
                 // required，should be consistent with `scene` used in the recommendation request
                 .setScene(scene)
                 .addAllItems(callbackItems)
+                .putExtra("xxxx","xxxxx")
                 .build();
 
         Option[] opts = defaultOptions(DEFAULT_CALLBACK_TIMEOUT);
