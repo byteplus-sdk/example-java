@@ -30,7 +30,7 @@ public class MockHelper {
                 .setDeviceType("app")
                 .setSubscriberType("free")
                 .setLanguage("English")
-                .addAllHistory(Arrays.asList("632461", "632462"))
+                .addAllViewHistory(Arrays.asList("632461", "632462"))
                 .setActivationChannel("AppStore")
                 .setMembershipLevel("silver")
                 .setRegistrationTimestamp(1623593487)
