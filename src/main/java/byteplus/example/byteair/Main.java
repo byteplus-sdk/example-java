@@ -5,6 +5,7 @@ import byteplus.example.common.RequestHelper.Callable;
 import byteplus.example.common.StatusHelper;
 import byteplus.sdk.byteair.ByteairClient;
 import byteplus.sdk.byteair.ByteairClientBuilder;
+import byteplus.sdk.byteair.protocol.ByteplusByteair;
 import byteplus.sdk.common.protocol.ByteplusCommon.DoneResponse;
 import byteplus.sdk.core.BizException;
 import byteplus.sdk.core.Option;
@@ -14,9 +15,9 @@ import byteplus.sdk.byteair.protocol.ByteplusByteair.PredictRequest;
 import byteplus.sdk.byteair.protocol.ByteplusByteair.PredictUser;
 import byteplus.sdk.byteair.protocol.ByteplusByteair.PredictContext;
 import byteplus.sdk.byteair.protocol.ByteplusByteair.PredictCandidateItem;
-import byteplus.sdk.byteair.protocol.ByteplusByteair.PredictRelatedItem;
+import byteplus.sdk.byteair.protocol.ByteplusByteair.PredictParentItem;
 import byteplus.sdk.byteair.protocol.ByteplusByteair.PredictResult;
-import byteplus.sdk.byteair.protocol.ByteplusByteair.PredictResultItem;
+import byteplus.sdk.byteair.protocol.ByteplusByteair.PredictItem;
 import byteplus.sdk.byteair.protocol.ByteplusByteair.PredictExtra;
 import byteplus.sdk.byteair.protocol.ByteplusByteair.PredictResponse;
 import byteplus.sdk.byteair.protocol.ByteplusByteair.CallbackRequest;
@@ -260,7 +261,7 @@ public class Main {
         PredictCandidateItem candidateItem = PredictCandidateItem.newBuilder()
                 .setId("item_id")
                 .build();
-        PredictRelatedItem relatedItem = PredictRelatedItem.newBuilder()
+        PredictParentItem parentItem = PredictParentItem.newBuilder()
                 .setId("item_id")
                 .build();
 
@@ -272,7 +273,7 @@ public class Main {
                 .setUser(user)
                 .setContext(context)
                 .addCandidateItems(candidateItem)
-                .setRelatedItem(relatedItem)
+                .setParentItem(parentItem)
                 .setExtra(extra)
                 .build();
     }
@@ -285,13 +286,13 @@ public class Main {
         return conv2CallbackItems(predictResult.getItemsList());
     }
 
-    private static List<CallbackItem> conv2CallbackItems(List<PredictResultItem> resultItems) {
+    private static List<CallbackItem> conv2CallbackItems(List<PredictItem> resultItems) {
         if (Objects.isNull(resultItems) || resultItems.isEmpty()) {
             return Collections.emptyList();
         }
         List<CallbackItem> callbackItems = new ArrayList<>(resultItems.size());
         for (int i = 0; i < resultItems.size(); i++) {
-            PredictResultItem resultItem = resultItems.get(i);
+            PredictItem resultItem = resultItems.get(i);
             Map<String, String> extraMap = Collections.singletonMap("reason", "kept");
             CallbackItem callbackItem = CallbackItem.newBuilder()
                     .setId(resultItem.getId())
