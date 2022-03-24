@@ -30,8 +30,9 @@ import static byteplus.sdk.general.protocol.ByteplusGeneral.PredictCandidateItem
 import static byteplus.sdk.general.protocol.ByteplusGeneral.PredictContext;
 import static byteplus.sdk.general.protocol.ByteplusGeneral.PredictExtra;
 import static byteplus.sdk.general.protocol.ByteplusGeneral.PredictRelatedItem;
+import static byteplus.sdk.general.protocol.ByteplusGeneral.PredictItem;
 import static byteplus.sdk.general.protocol.ByteplusGeneral.PredictUser;
-import static byteplus.sdk.general.protocol.ByteplusGeneral.SearchCondition;
+import static byteplus.sdk.general.protocol.ByteplusGeneral.SearchInfo;
 
 @Slf4j
 public class Main {
@@ -252,13 +253,13 @@ public class Main {
         return conv2CallbackItems(predictResult.getItemsList());
     }
 
-    private static List<ByteplusGeneral.CallbackItem> conv2CallbackItems(List<ByteplusGeneral.PredictResultItem> resultItems) {
+    private static List<ByteplusGeneral.CallbackItem> conv2CallbackItems(List<PredictItem> resultItems) {
         if (Objects.isNull(resultItems) || resultItems.isEmpty()) {
             return Collections.emptyList();
         }
         List<ByteplusGeneral.CallbackItem> callbackItems = new ArrayList<>(resultItems.size());
         for (int i = 0; i < resultItems.size(); i++) {
-            ByteplusGeneral.PredictResultItem resultItem = resultItems.get(i);
+            PredictItem resultItem = resultItems.get(i);
             Map<String, String> extraMap = Collections.singletonMap("reason", "kept");
             ByteplusGeneral.CallbackItem callbackItem = ByteplusGeneral.CallbackItem.newBuilder()
                     .setId(resultItem.getId())
@@ -291,7 +292,7 @@ public class Main {
     }
 
     private static PredictRequest buildSearchRequest() {
-        SearchCondition condition = SearchCondition.newBuilder()
+        SearchInfo condition = SearchInfo.newBuilder()
                 .setSearchType(0)
                 .setQuery("adidas")
                 .build();
@@ -302,7 +303,7 @@ public class Main {
 
         return PredictRequest.newBuilder()
                 .setSize(20)
-                .setSearchCondition(condition)
+                .setSearchInfo(condition)
                 .setExtra(extra)
                 .build();
     }
