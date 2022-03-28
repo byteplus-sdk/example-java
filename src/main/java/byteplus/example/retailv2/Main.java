@@ -117,7 +117,7 @@ public class Main {
     }
 
     public static void writeUsersExample() {
-        // The "WriteXXX" api can transfer max to 100 items at one request
+        // The "WriteXXX" api can transfer max to 2000 items at one request
         WriteUsersRequest request = buildWriteUsersRequest(1);
         Option[] opts = defaultOptions(DEFAULT_WRITE_TIMEOUT);
         WriteUsersResponse response;
@@ -136,7 +136,7 @@ public class Main {
     }
 
     public static void concurrentWriteUsersExample() {
-        // The "WriteXXX" api can transfer max to 100 items at one request
+        // The "WriteXXX" api can transfer max to 2000 items at one request
         WriteUsersRequest request = buildWriteUsersRequest(1);
         Option[] opts = defaultOptions(DEFAULT_WRITE_TIMEOUT);
         concurrentHelper.submitRequest(request, opts);
@@ -146,12 +146,12 @@ public class Main {
         List<User> users = MockHelper.mockUsers(count);
         return WriteUsersRequest.newBuilder()
                 .addAllUsers(users)
-                .putExtra("extra_info", "info")
+                //.putExtra("extra_info", "info")
                 .build();
     }
 
     public static void writeProductsExample() {
-        // The "WriteXXX" api can transfer max to 100 items at one request
+        // The "WriteXXX" api can transfer max to 2000 items at one request
         WriteProductsRequest request = buildWriteProductsRequest(1);
         Option[] options = defaultOptions(DEFAULT_WRITE_TIMEOUT);
         WriteProductsResponse response;
@@ -170,7 +170,7 @@ public class Main {
     }
 
     public static void concurrentWriteProductsExample() {
-        // The "WriteXXX" api can transfer max to 100 items at one request
+        // The "WriteXXX" api can transfer max to 2000 items at one request
         WriteProductsRequest request = buildWriteProductsRequest(1);
         Option[] opts = defaultOptions(DEFAULT_WRITE_TIMEOUT);
         concurrentHelper.submitRequest(request, opts);
@@ -180,12 +180,12 @@ public class Main {
         List<Product> products = MockHelper.mockProducts(count);
         return WriteProductsRequest.newBuilder()
                 .addAllProducts(products)
-                .putExtra("extra_info", "info")
+                //.putExtra("extra_info", "info")
                 .build();
     }
 
     public static void writeUserEventsExample() {
-        // The "WriteXXX" api can transfer max to 100 items at one request
+        // The "WriteXXX" api can transfer max to 2000 items at one request
         WriteUserEventsRequest request = buildWriteUserEventsRequest(1);
         Option[] options = defaultOptions(DEFAULT_WRITE_TIMEOUT);
         WriteUserEventsResponse response;
@@ -204,7 +204,7 @@ public class Main {
     }
 
     public static void concurrentWriteUserEventsExample() {
-        // The "WriteXXX" api can transfer max to 100 items at one request
+        // The "WriteXXX" api can transfer max to 2000 items at one request
         WriteUserEventsRequest request = buildWriteUserEventsRequest(1);
         Option[] opts = defaultOptions(DEFAULT_WRITE_TIMEOUT);
         concurrentHelper.submitRequest(request, opts);
@@ -214,7 +214,7 @@ public class Main {
         List<UserEvent> userEvents = MockHelper.mockUserEvents(count);
         return WriteUserEventsRequest.newBuilder()
                 .addAllUserEvents(userEvents)
-                .putExtra("extra_info", "info")
+                //.putExtra("extra_info", "info")
                 .build();
     }
 
