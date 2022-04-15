@@ -10,6 +10,8 @@ import byteplus.sdk.media.protocol.ByteplusMedia.WriteContentsRequest;
 import byteplus.sdk.media.protocol.ByteplusMedia.WriteContentsResponse;
 import byteplus.sdk.media.protocol.ByteplusMedia.WriteUserEventsRequest;
 import byteplus.sdk.media.protocol.ByteplusMedia.WriteUserEventsResponse;
+import byteplus.sdk.media.protocol.ByteplusMedia.AckServerImpressionsRequest;
+import byteplus.sdk.media.protocol.ByteplusMedia.AckServerImpressionsResponse;
 import lombok.extern.slf4j.Slf4j;
 
 import java.util.concurrent.ExecutorService;
@@ -61,6 +63,8 @@ public class ConcurrentHelper {
             run = () -> doWriteContents((WriteContentsRequest) request, opts);
         } else if (request instanceof WriteUserEventsRequest) {
             run = () -> doWriteUserEvents((WriteUserEventsRequest) request, opts);
+        } else if (request instanceof AckServerImpressionsRequest) {
+            run = () -> doAckImpression((AckServerImpressionsRequest) request, opts);
         } else {
             throw new RuntimeException("can't support this request type");
         }
@@ -106,6 +110,20 @@ public class ConcurrentHelper {
             log.error("[AsyncWriteUserEvents] fail, rsp:\n{}", response);
         } catch (Throwable e) {
             log.error("[AsyncWriteUserEvents] occur error, msg:{}", e.getMessage());
+        }
+    }
+
+    private void doAckImpression(AckServerImpressionsRequest request, Option[] opts) {
+        try {
+            AckServerImpressionsResponse response =
+                    requestHelper.doWithRetry(client::ackServerImpressions, request, opts, RETRY_TIMES);
+            if (StatusHelper.isSuccess(response.getStatus())) {
+                log.info("[AsyncAckImpression] success");
+                return;
+            }
+            log.error("[AsyncAckImpression] fail, rsp:\n{}", response);
+        } catch (Throwable e) {
+            log.error("[AsyncAckImpression] occur error, msg:{}", e.getMessage());
         }
     }
 }
