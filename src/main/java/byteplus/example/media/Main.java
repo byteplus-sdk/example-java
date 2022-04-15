@@ -18,7 +18,12 @@ import byteplus.sdk.media.protocol.ByteplusMedia.WriteContentsRequest;
 import byteplus.sdk.media.protocol.ByteplusMedia.WriteContentsResponse;
 import byteplus.sdk.media.protocol.ByteplusMedia.WriteUserEventsRequest;
 import byteplus.sdk.media.protocol.ByteplusMedia.WriteUserEventsResponse;
+import byteplus.sdk.media.protocol.ByteplusMedia.PredictRequest;
+import byteplus.sdk.media.protocol.ByteplusMedia.PredictResult;
+import byteplus.sdk.media.protocol.ByteplusMedia.PredictResponse;
+import byteplus.sdk.media.protocol.ByteplusMedia.AckServerImpressionsRequest;
 import lombok.extern.slf4j.Slf4j;
+import org.jetbrains.annotations.NotNull;
 
 import java.time.Duration;
 import java.time.LocalDate;
@@ -34,7 +39,11 @@ public class Main {
 
     private final static Duration DEFAULT_WRITE_TIMEOUT = Duration.ofMillis(800);
 
-    private final static Duration DEFAULT_DONE_TIMEOUT = Duration.ofMillis(1000);
+    private final static Duration DEFAULT_DONE_TIMEOUT = Duration.ofMillis(800);
+
+    private final static Duration DEFAULT_PREDICT_TIMEOUT = Duration.ofMillis(8000);
+
+    private final static Duration DEFAULT_ACK_IMPRESSIONS_TIMEOUT = Duration.ofMillis(8000);
 
     // A unique token assigned by bytedance, which is used to
     // generate an authenticated signature when building a request.
@@ -87,6 +96,9 @@ public class Main {
 
         // done
         doneExample();
+
+        // Get recommendation results
+        recommendExample();
 
         try {
             // Pause for 5 seconds until the asynchronous import task completes
@@ -219,6 +231,104 @@ public class Main {
             return;
         }
         log.error("[Done] find failure info, rsp:{}", response);
+    }
+
+    public static void recommendExample() {
+        PredictRequest predictRequest = buildPredictRequest();
+        Option[] predict_opts = defaultOptions(DEFAULT_PREDICT_TIMEOUT);
+        PredictResponse response;
+        try {
+            // The "home" is scene name, which provided by ByteDance, usually is "home"
+            response = client.predict(predictRequest, "home", predict_opts);
+        } catch (Exception e) {
+            log.error("predict occur error, msg:{}", e.getMessage());
+            return;
+        }
+        if (!StatusHelper.isSuccess(response.getStatus())) {
+            log.error("predict find failure info, msg:{}", response.getStatus());
+            return;
+        }
+        log.info("predict success");
+        // The items, which is eventually shown to user,
+        // should send back to Bytedance for deduplication
+        List<AckServerImpressionsRequest.AlteredContent> alteredContents =
+                doSomethingWithPredictResult(response.getValue());
+        AckServerImpressionsRequest ackRequest =
+                buildAckRequest(response.getRequestId(), predictRequest, alteredContents);
+        Option[] ack_opts = defaultOptions(DEFAULT_ACK_IMPRESSIONS_TIMEOUT);
+        concurrentHelper.submitRequest(ackRequest, ack_opts);
+    }
+
+    private static PredictRequest buildPredictRequest() {
+        PredictRequest.Scene scene = PredictRequest.Scene.newBuilder()
+                .setSceneName("home")
+                .build();
+
+        Content rootContent = MockHelper.mockContent();
+        PredictRequest.Context context = PredictRequest.Context.newBuilder()
+                .setRootContent(rootContent)
+                .addAllCandidateContentIds(Arrays.asList("pid1", "pid2"))
+                .setDevice("android")
+                .setOsType("phone")
+                .setAppVersion("app_version")
+                .setDeviceModel("device_model")
+                .setDeviceBrand("device_brand")
+                .setOsVersion("os_version")
+                .setBrowserType("firefox")
+                .setUserAgent("user_agent")
+                .setNetwork("3g")
+                .build();
+
+        return PredictRequest.newBuilder()
+                .setUserId("user_id")
+                .setSize(20)
+                .setScene(scene)
+                .setContext(context)
+                .putExtra("page_num", "1")
+                .build();
+    }
+
+    private static List<AckServerImpressionsRequest.AlteredContent> doSomethingWithPredictResult(
+            PredictResult predictResult) {
+        // You can handle recommend results here,
+        // such as filter, insert other items, sort again, etc.
+        // The list of contents finally displayed to user and the filtered contents
+        // should be sent back to bytedance for deduplication
+        return conv2AlteredContents(predictResult.getResponseContentsList());
+    }
+
+    @NotNull
+    private static List<AckServerImpressionsRequest.AlteredContent> conv2AlteredContents(
+            List<PredictResult.ResponseContent> contents) {
+        if (Objects.isNull(contents) || contents.isEmpty()) {
+            return Collections.emptyList();
+        }
+        List<AckServerImpressionsRequest.AlteredContent> alteredContents = new ArrayList<>(contents.size());
+        for (int i = 0; i < contents.size(); i++) {
+            PredictResult.ResponseContent responseContent = contents.get(i);
+            AckServerImpressionsRequest.AlteredContent alteredContent =
+                    AckServerImpressionsRequest.AlteredContent.newBuilder()
+                    .setAlteredReason("kept")
+                    .setContentId(responseContent.getContentId())
+                    .setRank(i + 1)
+                    .build();
+
+            alteredContents.add(alteredContent);
+        }
+        return alteredContents;
+    }
+
+    private static AckServerImpressionsRequest buildAckRequest(
+            String predictRequestId,
+            PredictRequest predictRequest,
+            List<AckServerImpressionsRequest.AlteredContent> alteredContents) {
+
+        return AckServerImpressionsRequest.newBuilder()
+                .setPredictRequestId(predictRequestId)
+                .setUserId(predictRequest.getUserId())
+                .setScene(predictRequest.getScene())
+                .addAllAlteredContents(alteredContents)
+                .build();
     }
 
     private static Option[] defaultOptions(Duration timeout) {
