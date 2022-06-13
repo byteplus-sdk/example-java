@@ -110,29 +110,29 @@ public class Main {
         // Write real-time user data
         writeUsersExample();
         // Write real-time user data concurrently
-        concurrentWriteUsersExample();
+        // concurrentWriteUsersExample();
         // Import daily offline user data
         importUsersExample();
         // Import daily offline user data concurrently
-        concurrentImportUsersExample();
+        // concurrentImportUsersExample();
 
         // Write real-time product data
         writeProductsExample();
         // Write real-time product data concurrently
-        concurrentWriteProductsExample();
+        // concurrentWriteProductsExample();
         // Import daily offline product data
         importProductsExample();
         // Concurrent import daily offline product data
-        concurrentImportProductsExample();
+        // concurrentImportProductsExample();
 
         // Write real-time user event data
         writeUserEventsExample();
         // Write real-time user event data concurrently
-        concurrentWriteUserEventsExample();
+        // concurrentWriteUserEventsExample();
         // Import daily offline user event data
         importUserEventsExample();
         // Concurrent import daily offline user event data
-        concurrentImportUserEventsExample();
+        // concurrentImportUserEventsExample();
 
         // Obtain Operation information according to operationName,
         // if the corresponding task is executing, the real-time
@@ -530,7 +530,11 @@ public class Main {
                 .setPredictRequestId(predictRequestId)
                 .setUserId(predictRequest.getUserId())
                 .setScene(predictRequest.getScene())
+                // If it is the recommendation result from byteplus, traffic_source is byteplus,
+                // if it is the customer's own recommendation result, traffic_source is self.
+                .setTrafficSource("byteplus")
                 .addAllAlteredProducts(alteredProducts)
+                //.putExtra("ip", "127.0.0.1")
                 .build();
     }
 
