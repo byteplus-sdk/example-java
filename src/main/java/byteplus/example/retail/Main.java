@@ -88,6 +88,27 @@ public class Main {
 
 
     static {
+//        // Metrics configuration, when Metrics and Metrics Log are turned on,
+//        // the metrics and logs at runtime will be collected and sent to the byteplus server.
+//        // During debugging, byteplus can help customers troubleshoot problems.
+//        MetricsCfg metricsCfg = new MetricsCfg().toBuilder()
+//                .enableMetrics(true) // enable metrics, default is false.
+//                .enableMetricsLog(true) // enable metrics log, default is false.
+//                // The time interval for reporting metrics to the byteplus server, the default is 15s.
+//                // When the QPS is high, the value of the reporting interval can be reduced to prevent
+//                // loss of metrics.
+//                // The longest should not exceed 30s, otherwise it will cause the loss of metrics accuracy.
+//                .reportInterval(Duration.ofSeconds(15))
+//                .build();
+
+
+//        HostAvailabler.Config config = new HostAvailabler.Config().toBuilder()
+//                // The timeout for sending ping requests when hostAvailabler sorts the host, default is 300ms.
+//                .pingTimeout(Duration.ofMillis(300))
+//                // The interval for sending ping requests when hostAvailabler sorts the host, default is 1s.
+//                .pingInterval(Duration.ofSeconds(1))
+//                .build();
+
         client = new RetailClientBuilder()
                 .tenant(TENANT) // Required
                 .tenantId(TENANT_ID) // Required
@@ -95,6 +116,8 @@ public class Main {
                 .region(Region.SG) //Required, select enum value according to your region
 //                .schema("https") //Optional
 //                .headers(Collections.singletonMap("Customer-Header", "value")) // Optional
+//                .metricsConfig(metricsCfg) // Optional
+//                .hostAvailablerConfig(config) // Optional
                 .build();
         requestHelper = new RequestHelper(client);
         concurrentHelper = new ConcurrentHelper(client);
