@@ -14,7 +14,7 @@ public class StatusHelper {
     public static boolean isUploadSuccess(Status status) {
         int code = status.getCode();
         // It is still considered as success, which is rejected for idempotent
-        return code == STATUS_CODE_SUCCESS || code == STATUS_CODE_IDEMPOTENT || code == HTTP_STATUS_OK;
+        return code == STATUS_CODE_SUCCESS || code == STATUS_CODE_IDEMPOTENT;
     }
 
     public static boolean isSuccess(Status status) {
